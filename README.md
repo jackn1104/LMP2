@@ -10,8 +10,30 @@ correlation contributions.
 The public command is intentionally small:
 
 ```bash
-./LMP2 examples/water_dimer.xyz
+./LMP2 examples/water_tetramer.xyz
 ```
+
+The included geometry gives the following seven-point minimax result with the
+default settings (wall time is machine-dependent):
+
+```text
+LMP2 completed
+  Basis:        aug-cc-pVDZ
+  RHF:          -304.192978726043748 Eh
+  1M:           -0.790063577123332 Eh
+  2M:           -0.104506137924530 Eh
+  3M:           -0.001868096155842 Eh
+  4M:           -0.000016320785323 Eh
+  Correlation:  -0.896454131989028 Eh
+  Total MP2:    -305.089432858032751 Eh
+  Wall time:     10.038 s
+  Local OVOV:    0.040 GiB
+```
+
+The complete machine-readable record is written to `energy.csv`; the terminal
+summary above is only the most important subset. The sanitized complete
+example summary is preserved in
+[`examples/water_tetramer_aug_cc_pVDZ_output.txt`](examples/water_tetramer_aug_cc_pVDZ_output.txt).
 
 The terminal shows each stage as it runs and prints the final RHF energy,
 the localized MP2 correlation energy, the total MP2 energy, and wall time.
@@ -96,21 +118,30 @@ Water monomer, default settings:
 ./LMP2 examples/water_monomer.xyz
 ```
 
-Water dimer with aug-cc-pVTZ:
+The included cyclic water tetramer, using the default aug-cc-pVDZ basis and
+full 1M--4M decomposition:
 
 ```bash
-./LMP2 examples/water_dimer.xyz --basis avtz
+./LMP2 examples/water_tetramer.xyz
 ```
 
-Approximate 1M+2M truncation:
+The same tetramer with aug-cc-pVTZ:
 
 ```bash
-./LMP2 examples/water_dimer.xyz --mode 1m2m
+./LMP2 examples/water_tetramer.xyz --basis avtz
+```
+
+Approximate tetramer 1M+2M truncation:
+
+```bash
+./LMP2 examples/water_tetramer.xyz --mode 1m2m
 ```
 
 The `1m2m` mode deliberately omits every 3M and 4M excitation contribution.
 Use the default `full` mode for the complete localized MP2 correlation
-energy.
+energy. The terminal prints 1M--4M for `full`; it prints only 1M, 2M, and
+their sum for `1m2m`. The CSV retains explicit zero-valued 3M and 4M columns
+in truncated mode so automated analyses keep a fixed schema.
 
 Every run creates a new output directory containing:
 
@@ -131,7 +162,7 @@ Existing nonempty output directories are never overwritten.
 Reuse a completed RHF checkpoint and its localization sidecar:
 
 ```bash
-./LMP2 examples/water_dimer.xyz \
+./LMP2 examples/water_tetramer.xyz \
   --checkpoint results/LMP2-PREVIOUS/rhf.h5 \
   --output results/water-dimer-restart
 ```
@@ -187,8 +218,9 @@ under the documented PM/Löwdin convention.
 
 ## Reference checks
 
-The included water-monomer aug-cc-pVDZ minimax calculation is used as a small
-installation check. A completed full W20/aVDZ seven-point calculation gave:
+The included water-monomer aug-cc-pVDZ minimax calculation is used as the
+small automated installation check. The tetramer result above exercises all
+four nM buckets. A completed full W20/aVDZ seven-point calculation gave:
 
 ```text
 1M   -3.727615804890495 Eh

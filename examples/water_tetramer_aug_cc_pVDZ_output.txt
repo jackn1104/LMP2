@@ -1,0 +1,23 @@
+Basis: aug-cc-pVDZ
+Geometry: water_tetramer.xyz
+Method: localized Laplace-transform MP2
+Quadrature: finite-interval minimax, 7 points
+Mode: full 1M-4M decomposition
+AO shell-quartet Schwarz threshold: 1e-10
+RHF ERI Schwarz threshold: 1e-12
+
+LMP2 completed
+  Basis:        aug-cc-pVDZ
+  RHF:          -304.192978726043748 Eh
+  1M:           -0.790063577123332 Eh
+  2M:           -0.104506137924530 Eh
+  3M:           -0.001868096155842 Eh
+  4M:           -0.000016320785323 Eh
+  Correlation:  -0.896454131989028 Eh
+  Total MP2:    -305.089432858032751 Eh
+  Wall time:     10.038 s
+  Local OVOV:    0.040 GiB
+
+The wall time is machine-dependent. Energies are in hartree. This calculation
+used the localized_cached_ovov backend, zero canonical OVOV bytes, one logical
+localized OVOV tensor, and zero low-confidence occupied or virtual orbitals.
