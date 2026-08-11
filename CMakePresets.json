@@ -1,0 +1,68 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "MODERNQC_ENABLE_MPI": "ON",
+        "MODERNQC_ENABLE_OPENMP": "ON",
+        "MODERNQC_ENABLE_LIBINT2": "ON",
+        "MODERNQC_ENABLE_HDF5": "ON",
+        "BUILD_TESTING": "OFF"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Optimized release build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "displayName": "Debug build with tests",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "ubsan",
+      "inherits": "debug",
+      "displayName": "Undefined behavior sanitizer",
+      "cacheVariables": {
+        "MODERNQC_ENABLE_SANITIZERS": "ON",
+        "MODERNQC_SANITIZER_SET": "undefined"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "release", "configurePreset": "release"},
+    {"name": "debug", "configurePreset": "debug"},
+    {"name": "ubsan", "configurePreset": "ubsan"}
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "ubsan",
+      "configurePreset": "ubsan",
+      "output": {"outputOnFailure": true}
+    }
+  ]
+}
+

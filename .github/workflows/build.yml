@@ -1,0 +1,24 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build libeigen3-dev libint2-dev libhdf5-dev \
+            libopenmpi-dev openmpi-bin libopenblas-dev liblapack-dev
+      - name: Configure
+        run: cmake --preset release
+      - name: Build
+        run: cmake --build --preset release
+      - name: Check launcher
+        run: ./LMP2 examples/water_monomer.xyz --dry-run
+

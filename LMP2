@@ -1,0 +1,504 @@
+#!/usr/bin/env python3
+"""Friendly launcher for localized Laplace-transform MP2 calculations."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from typing import Sequence
+
+
+VERSION = "0.1.0"
+
+
+def positive_integer(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be a positive integer")
+    return parsed
+
+
+def nonnegative_float(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0.0:
+        raise argparse.ArgumentTypeError("value must be nonnegative")
+    return parsed
+
+
+def physical_core_count() -> int:
+    if sys.platform == "darwin":
+        result = subprocess.run(
+            ["sysctl", "-n", "hw.physicalcpu"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip().isdigit():
+            return max(1, int(result.stdout.strip()))
+
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.is_file():
+        sockets_and_cores: set[tuple[str, str]] = set()
+        physical_id = "0"
+        core_id: str | None = None
+        for line in cpuinfo.read_text(encoding="utf-8").splitlines() + [""]:
+            if not line.strip():
+                if core_id is not None:
+                    sockets_and_cores.add((physical_id, core_id))
+                physical_id = "0"
+                core_id = None
+            elif line.startswith("physical id"):
+                physical_id = line.split(":", 1)[1].strip()
+            elif line.startswith("core id"):
+                core_id = line.split(":", 1)[1].strip()
+        if sockets_and_cores:
+            return len(sockets_and_cores)
+
+    return max(1, os.cpu_count() or 1)
+
+
+def slurm_node_count() -> int | None:
+    value = os.environ.get("SLURM_JOB_NUM_NODES")
+    if value and value.isdigit() and int(value) > 0:
+        return int(value)
+    return None
+
+
+def slurm_cpus_on_node() -> int | None:
+    value = os.environ.get("SLURM_CPUS_ON_NODE", "")
+    match = re.match(r"(\d+)", value)
+    return int(match.group(1)) if match and int(match.group(1)) > 0 else None
+
+
+def locate_engine(explicit: Path | None) -> Path:
+    candidates: list[Path] = []
+    if explicit is not None:
+        candidates.append(explicit)
+    environment_engine = os.environ.get("LMP2_ENGINE")
+    if environment_engine:
+        candidates.append(Path(environment_engine))
+
+    root = Path(__file__).resolve().parent
+    candidates.extend(
+        [
+            root / "build" / "release" / "lmp2_engine",
+            root / "build" / "debug" / "lmp2_engine",
+            root / "lmp2_engine",
+            root.parent / "libexec" / "LMP2" / "lmp2_engine",
+        ]
+    )
+    path_engine = shutil.which("lmp2_engine")
+    if path_engine:
+        candidates.append(Path(path_engine))
+
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if resolved.is_file() and os.access(resolved, os.X_OK):
+            return resolved
+    raise FileNotFoundError(
+        "lmp2_engine was not found. Build with 'cmake --preset release' "
+        "and 'cmake --build --preset release', or set LMP2_ENGINE."
+    )
+
+
+def validate_water_xyz(path: Path) -> int:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as error:
+        raise ValueError(f"unable to read geometry: {error}") from error
+    if len(lines) < 2:
+        raise ValueError("XYZ geometry is incomplete")
+    try:
+        atom_count = int(lines[0].strip())
+    except ValueError as error:
+        raise ValueError("the first XYZ line must be the atom count") from error
+    records = [line.split() for line in lines[2:] if line.strip()]
+    if len(records) != atom_count:
+        raise ValueError(
+            f"XYZ declares {atom_count} atoms but contains {len(records)} records"
+        )
+    oxygen = 0
+    hydrogen = 0
+    for index, fields in enumerate(records, start=1):
+        if len(fields) != 4:
+            raise ValueError(f"XYZ atom record {index} must have four fields")
+        symbol = fields[0].upper()
+        if symbol == "O":
+            oxygen += 1
+        elif symbol == "H":
+            hydrogen += 1
+        else:
+            raise ValueError("this release supports neutral water clusters only")
+        try:
+            coordinates = [float(component) for component in fields[1:]]
+        except ValueError as error:
+            raise ValueError(f"XYZ atom record {index} has invalid coordinates") from error
+        if not all(math.isfinite(value) for value in coordinates):
+            raise ValueError(f"XYZ atom record {index} has non-finite coordinates")
+    if oxygen == 0 or hydrogen != 2 * oxygen or atom_count != 3 * oxygen:
+        raise ValueError(
+            "geometry must contain contiguous neutral H2O monomers: one O and two H"
+        )
+    for first in range(0, atom_count, 3):
+        symbols = [records[first + offset][0].upper() for offset in range(3)]
+        if symbols != ["O", "H", "H"]:
+            monomer = first // 3 + 1
+            raise ValueError(
+                f"water monomer {monomer} must be three consecutive records in O H H order"
+            )
+    return oxygen
+
+
+def default_output_directory() -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return Path("results") / f"LMP2-{stamp}"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="LMP2",
+        description=(
+            "Localized Laplace-transform MP2 for neutral water clusters. "
+            "The exact localized cached OVOV method is always used."
+        ),
+    )
+    parser.add_argument("--version", action="version", version=f"LMP2 {VERSION}")
+    parser.add_argument("geometry", type=Path, help="XYZ geometry in angstrom")
+    parser.add_argument(
+        "--basis",
+        default="avdz",
+        choices=("avdz", "avtz", "avqz"),
+        help="aug-cc-pVXZ orbital basis (default: avdz)",
+    )
+    parser.add_argument(
+        "--mode",
+        default="full",
+        choices=("full", "1m2m"),
+        help="full 1M-4M decomposition or truncated 1M+2M (default: full)",
+    )
+    parser.add_argument(
+        "--quadrature",
+        default="minimax",
+        choices=("minimax", "laguerre", "wa-continuous"),
+        help="Laplace quadrature construction (default: minimax)",
+    )
+    parser.add_argument(
+        "--points",
+        type=positive_integer,
+        help="quadrature points (defaults: minimax 7, laguerre 50, WA 10)",
+    )
+    parser.add_argument(
+        "--ao-schwarz",
+        type=nonnegative_float,
+        default=1.0e-10,
+        help="post-HF AO shell-quartet Schwarz threshold (default: 1e-10)",
+    )
+    parser.add_argument(
+        "--rhf-schwarz",
+        type=nonnegative_float,
+        default=1.0e-12,
+        help="RHF ERI Schwarz threshold (default: 1e-12)",
+    )
+    parser.add_argument(
+        "--confidence",
+        type=float,
+        default=0.8,
+        help="minimum PM/Löwdin monomer population; failure is immediate",
+    )
+    parser.add_argument("--threads", type=positive_integer)
+    parser.add_argument("--ranks", type=positive_integer)
+    parser.add_argument("--occupied-tile", type=positive_integer)
+    parser.add_argument("--virtual-tile", type=positive_integer)
+    parser.add_argument("--memory-gib", type=positive_integer)
+    parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="existing same-basis RHF checkpoint; its PM sidecar is reused when present",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="new output directory (default: results/LMP2-UTC_TIMESTAMP)",
+    )
+    parser.add_argument("--engine", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="validate input and print the launch command without running",
+    )
+    return parser
+
+
+def safe_command(command: Sequence[str]) -> str:
+    return shlex.join(command)
+
+
+def write_metadata(path: Path, metadata: dict[str, object]) -> None:
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def print_summary(energy_path: Path) -> None:
+    with energy_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) != 1:
+        raise RuntimeError("energy.csv must contain exactly one result row")
+    row = rows[0]
+    required = (
+        "energy_backend",
+        "rhf_energy_hartree",
+        "lmp2_1m_hartree",
+        "lmp2_2m_hartree",
+        "lmp2_3m_hartree",
+        "lmp2_4m_hartree",
+        "lmp2_correlation_hartree",
+        "total_mp2_hartree",
+        "total_seconds",
+        "canonical_ovov_bytes",
+        "localized_ovov_bytes",
+        "localized_ovov_stored_bytes_global",
+        "localized_ovov_storage_replication_factor",
+        "low_confidence_occ",
+        "low_confidence_vir",
+    )
+    missing = [name for name in required if name not in row]
+    if missing:
+        raise RuntimeError("energy.csv is missing columns: " + ", ".join(missing))
+    if row["energy_backend"] != "localized_cached_ovov":
+        raise RuntimeError(
+            "calculation did not use localized_cached_ovov: "
+            + row["energy_backend"]
+        )
+    if int(row["canonical_ovov_bytes"]) != 0:
+        raise RuntimeError("localized calculation unexpectedly stored canonical OVOV")
+
+    components = [
+        float(row["lmp2_1m_hartree"]),
+        float(row["lmp2_2m_hartree"]),
+        float(row["lmp2_3m_hartree"]),
+        float(row["lmp2_4m_hartree"]),
+    ]
+    correlation = float(row["lmp2_correlation_hartree"])
+    if not all(math.isfinite(value) for value in components + [correlation]):
+        raise RuntimeError("energy.csv contains a non-finite energy")
+    if abs(math.fsum(components) - correlation) > 1.0e-10:
+        raise RuntimeError("1M+2M+3M+4M does not reproduce the correlation energy")
+    if int(row["low_confidence_occ"]) != 0 or int(row["low_confidence_vir"]) != 0:
+        raise RuntimeError("localized orbital assignment contains low-confidence orbitals")
+    logical_bytes = int(row["localized_ovov_bytes"])
+    stored_bytes = int(row["localized_ovov_stored_bytes_global"])
+    if logical_bytes != stored_bytes:
+        raise RuntimeError("localized OVOV ownership audit failed")
+    replication = float(row["localized_ovov_storage_replication_factor"])
+    if abs(replication - 1.0) > 1.0e-12:
+        raise RuntimeError("localized OVOV storage is replicated across MPI ranks")
+
+    print("\nLMP2 completed")
+    print(f"  RHF:          {float(row['rhf_energy_hartree']): .15f} Eh")
+    print(f"  1M:           {float(row['lmp2_1m_hartree']): .15f} Eh")
+    print(f"  2M:           {float(row['lmp2_2m_hartree']): .15f} Eh")
+    print(f"  3M:           {float(row['lmp2_3m_hartree']): .15f} Eh")
+    print(f"  4M:           {float(row['lmp2_4m_hartree']): .15f} Eh")
+    print(f"  Correlation:  {float(row['lmp2_correlation_hartree']): .15f} Eh")
+    print(f"  Total MP2:    {float(row['total_mp2_hartree']): .15f} Eh")
+    print(f"  Wall time:    {float(row['total_seconds']): .3f} s")
+    print(f"  Local OVOV:   {int(row['localized_ovov_bytes']) / 2**30: .3f} GiB")
+
+
+def main() -> int:
+    arguments = build_parser().parse_args()
+    if not 0.0 <= arguments.confidence <= 1.0:
+        raise SystemExit("error: --confidence must lie between zero and one")
+
+    geometry = arguments.geometry.expanduser().resolve()
+    waters = validate_water_xyz(geometry)
+    engine = locate_engine(arguments.engine)
+    ranks = arguments.ranks or slurm_node_count() or 1
+    detected_cores = physical_core_count()
+    default_threads = (
+        detected_cores
+        if os.environ.get("SLURM_JOB_ID") or ranks == 1
+        else max(1, detected_cores // ranks)
+    )
+    threads = arguments.threads or default_threads
+    points = arguments.points
+    if points is None:
+        points = {
+            "minimax": 7,
+            "laguerre": 50,
+            "wa-continuous": 10,
+        }[arguments.quadrature]
+    if arguments.quadrature == "minimax" and points not in (5, 6, 7):
+        raise SystemExit("error: minimax currently supports 5, 6, or 7 points")
+    if arguments.mode == "1m2m":
+        print("warning: 1m2m omits all 3M and 4M excitation contributions")
+
+    output = (arguments.output or default_output_directory()).expanduser().resolve()
+    if output.exists():
+        if not output.is_dir():
+            raise SystemExit(f"error: output path is not a directory: {output}")
+        if any(output.iterdir()):
+            raise SystemExit(
+                f"error: refusing to overwrite nonempty directory: {output}"
+            )
+
+    occupied_tile = str(arguments.occupied_tile or "auto")
+    virtual_tile = str(arguments.virtual_tile or "auto")
+    memory = str(arguments.memory_gib or "auto")
+    checkpoint = (
+        arguments.checkpoint.expanduser().resolve()
+        if arguments.checkpoint
+        else output / "rhf.h5"
+    )
+    if arguments.checkpoint and not checkpoint.is_file():
+        raise SystemExit(f"error: checkpoint does not exist: {checkpoint}")
+    initial_checkpoint = str(checkpoint) if arguments.checkpoint else "none"
+
+    engine_command = [
+        str(engine),
+        str(geometry),
+        arguments.basis,
+        str(points),
+        f"{arguments.ao_schwarz:.17g}",
+        str(threads),
+        occupied_tile,
+        virtual_tile,
+        memory,
+        arguments.mode,
+        f"{arguments.confidence:.17g}",
+        "pm",
+        "localized-cached-ovov",
+        arguments.quadrature,
+        "none",
+        "0",
+        "0",
+        f"{arguments.rhf_schwarz:.17g}",
+        "0",
+        str(checkpoint),
+        initial_checkpoint,
+        "same",
+        "smart",
+    ]
+
+    launcher: list[str] = []
+    if os.environ.get("SLURM_JOB_ID"):
+        launcher = [
+            "srun",
+            "-N",
+            str(ranks),
+            "-n",
+            str(ranks),
+            "--ntasks-per-node=1",
+            "--cpu-bind=cores",
+        ]
+        allocated_cpus = slurm_cpus_on_node()
+        if allocated_cpus:
+            launcher.append(f"--cpus-per-task={allocated_cpus}")
+    elif ranks > 1:
+        mpi_launcher = shutil.which("mpiexec") or shutil.which("mpirun")
+        if not mpi_launcher:
+            raise SystemExit("error: multiple ranks requested but no MPI launcher found")
+        launcher = [mpi_launcher, "-n", str(ranks)]
+    command = launcher + engine_command
+
+    print("LMP2 calculation")
+    print(f"  Waters:       {waters}")
+    print(f"  Basis:        {arguments.basis}")
+    print(f"  Mode:         {arguments.mode}")
+    print(f"  Quadrature:   {arguments.quadrature}, {points} points")
+    print(f"  MPI ranks:    {ranks}")
+    print(f"  Threads/rank: {threads}")
+    print(f"  Output:       {output}")
+    print(f"  Command:      {safe_command(command)}")
+    if arguments.dry_run:
+        return 0
+
+    output.mkdir(parents=True, exist_ok=True)
+    geometry_copy = output / "geometry.xyz"
+    shutil.copy2(geometry, geometry_copy)
+    geometry_hash = hashlib.sha256(geometry.read_bytes()).hexdigest()
+    metadata: dict[str, object] = {
+        "basis": arguments.basis,
+        "LMP2_version": VERSION,
+        "completed_utc": None,
+        "geometry_file": geometry.name,
+        "geometry_sha256": geometry_hash,
+        "localized_energy_screens_hartree": [0.0, 0.0],
+        "method": "localized_cached_ovov",
+        "mode": arguments.mode,
+        "mpi_ranks": ranks,
+        "openmp_threads_per_rank": threads,
+        "points": points,
+        "quadrature": arguments.quadrature,
+        "rhf_eri_schwarz_threshold": arguments.rhf_schwarz,
+        "run_status": "running",
+        "shell_quartet_schwarz_threshold": arguments.ao_schwarz,
+        "waters": waters,
+    }
+    metadata_path = output / "metadata.json"
+    write_metadata(metadata_path, metadata)
+
+    environment = os.environ.copy()
+    environment["OMP_NUM_THREADS"] = str(threads)
+    environment.setdefault("OMP_PROC_BIND", "spread")
+    environment.setdefault("OMP_PLACES", "cores")
+    environment["OPENBLAS_NUM_THREADS"] = "1"
+    environment["MKL_NUM_THREADS"] = "1"
+
+    sys.stdout.flush()
+
+    energy_path = output / "energy.csv"
+    progress_path = output / "progress.err"
+    with energy_path.open("w", encoding="utf-8") as energy_file, progress_path.open(
+        "w", encoding="utf-8"
+    ) as progress_file:
+        process = subprocess.Popen(
+            command,
+            stdout=energy_file,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            env=environment,
+        )
+        assert process.stderr is not None
+        for line in process.stderr:
+            progress_file.write(line)
+            progress_file.flush()
+            sys.stderr.write(line)
+            sys.stderr.flush()
+        return_code = process.wait()
+
+    metadata["completed_utc"] = datetime.now(timezone.utc).isoformat()
+    metadata["exit_status"] = return_code
+    metadata["run_status"] = "complete" if return_code == 0 else "failed"
+    write_metadata(metadata_path, metadata)
+    if return_code != 0:
+        print(f"error: calculation failed; see {progress_path}", file=sys.stderr)
+        return return_code
+
+    print_summary(energy_path)
+    print(f"  Results:      {output}")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (FileNotFoundError, ValueError, RuntimeError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(2) from error
