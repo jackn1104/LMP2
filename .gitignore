@@ -1,0 +1,10 @@
+/build/
+/results/
+*.h5
+*.localization.h5
+*.csv
+*.err
+*.log
+__pycache__/
+.DS_Store
+
