@@ -20,5 +20,4 @@ jobs:
       - name: Build
         run: cmake --build --preset release
       - name: Check launcher
-        run: ./LMP2 examples/water_monomer.xyz --dry-run
-
+        run: ./LMP2 examples/water_tetramer.xyz --dry-run

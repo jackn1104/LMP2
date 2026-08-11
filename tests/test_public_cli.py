@@ -46,6 +46,10 @@ def main() -> int:
             known_case.returncode == 0,
             "known-case calculation failed:\n" + known_case.stdout + known_case.stderr,
         )
+        require(
+            "LMP2 completed\n  Basis:        aug-cc-pVDZ" in known_case.stdout,
+            "completed summary does not start with the full basis name",
+        )
         with (output / "energy.csv").open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         require(len(rows) == 1, "known-case energy.csv has the wrong row count")
@@ -68,6 +72,34 @@ def main() -> int:
             == int(row["localized_ovov_stored_bytes_global"]),
             "localized OVOV ownership audit failed",
         )
+
+        truncated_output = root / "truncated"
+        truncated = run(
+            [
+                sys.executable,
+                str(launcher),
+                str(source / "examples" / "water_monomer.xyz"),
+                "--engine",
+                str(engine),
+                "--threads",
+                "2",
+                "--mode",
+                "1m2m",
+                "--checkpoint",
+                str(output / "rhf.h5"),
+                "--output",
+                str(truncated_output),
+            ]
+        )
+        require(
+            truncated.returncode == 0,
+            "truncated calculation failed:\n" + truncated.stdout + truncated.stderr,
+        )
+        require("  1M:" in truncated.stdout, "truncated summary omitted 1M")
+        require("  2M:" in truncated.stdout, "truncated summary omitted 2M")
+        require("  1M+2M:" in truncated.stdout, "truncated summary omitted its sum")
+        require("  3M:" not in truncated.stdout, "truncated summary printed 3M")
+        require("  4M:" not in truncated.stdout, "truncated summary printed 4M")
 
         malformed = root / "malformed.xyz"
         malformed.write_text(

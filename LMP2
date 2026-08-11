@@ -20,6 +20,11 @@ from typing import Sequence
 
 
 VERSION = "0.1.0"
+BASIS_DISPLAY_NAMES = {
+    "avdz": "aug-cc-pVDZ",
+    "avtz": "aug-cc-pVTZ",
+    "avqz": "aug-cc-pVQZ",
+}
 
 
 def positive_integer(value: str) -> int:
@@ -253,7 +258,7 @@ def write_metadata(path: Path, metadata: dict[str, object]) -> None:
     temporary.replace(path)
 
 
-def print_summary(energy_path: Path) -> None:
+def print_summary(energy_path: Path, requested_mode: str, requested_basis: str) -> None:
     with energy_path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     if len(rows) != 1:
@@ -286,6 +291,8 @@ def print_summary(energy_path: Path) -> None:
         )
     if int(row["canonical_ovov_bytes"]) != 0:
         raise RuntimeError("localized calculation unexpectedly stored canonical OVOV")
+    if requested_mode not in ("full", "1m2m"):
+        raise RuntimeError(f"unsupported output mode: {requested_mode}")
 
     components = [
         float(row["lmp2_1m_hartree"]),
@@ -309,12 +316,16 @@ def print_summary(energy_path: Path) -> None:
         raise RuntimeError("localized OVOV storage is replicated across MPI ranks")
 
     print("\nLMP2 completed")
+    print(f"  Basis:        {BASIS_DISPLAY_NAMES[requested_basis]}")
     print(f"  RHF:          {float(row['rhf_energy_hartree']): .15f} Eh")
     print(f"  1M:           {float(row['lmp2_1m_hartree']): .15f} Eh")
     print(f"  2M:           {float(row['lmp2_2m_hartree']): .15f} Eh")
-    print(f"  3M:           {float(row['lmp2_3m_hartree']): .15f} Eh")
-    print(f"  4M:           {float(row['lmp2_4m_hartree']): .15f} Eh")
-    print(f"  Correlation:  {float(row['lmp2_correlation_hartree']): .15f} Eh")
+    if requested_mode == "full":
+        print(f"  3M:           {float(row['lmp2_3m_hartree']): .15f} Eh")
+        print(f"  4M:           {float(row['lmp2_4m_hartree']): .15f} Eh")
+        print(f"  Correlation:  {correlation: .15f} Eh")
+    else:
+        print(f"  1M+2M:        {correlation: .15f} Eh")
     print(f"  Total MP2:    {float(row['total_mp2_hartree']): .15f} Eh")
     print(f"  Wall time:    {float(row['total_seconds']): .3f} s")
     print(f"  Local OVOV:   {int(row['localized_ovov_bytes']) / 2**30: .3f} GiB")
@@ -417,8 +428,8 @@ def main() -> int:
     command = launcher + engine_command
 
     print("LMP2 calculation")
+    print(f"  Basis:        {BASIS_DISPLAY_NAMES[arguments.basis]}")
     print(f"  Waters:       {waters}")
-    print(f"  Basis:        {arguments.basis}")
     print(f"  Mode:         {arguments.mode}")
     print(f"  Quadrature:   {arguments.quadrature}, {points} points")
     print(f"  MPI ranks:    {ranks}")
@@ -491,7 +502,7 @@ def main() -> int:
         print(f"error: calculation failed; see {progress_path}", file=sys.stderr)
         return return_code
 
-    print_summary(energy_path)
+    print_summary(energy_path, arguments.mode, arguments.basis)
     print(f"  Results:      {output}")
     return 0
 
