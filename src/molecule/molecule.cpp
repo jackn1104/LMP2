@@ -1,4 +1,4 @@
-#include "modernqc/molecule/molecule.hpp"
+#include "lmp2_1m2m/molecule/molecule.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace modernqc::molecule {
+namespace lmp2_1m2m::molecule {
 
 int atomic_number(std::string_view symbol) {
   if(symbol == "H") {
@@ -146,4 +146,4 @@ std::vector<int> contiguous_water_monomers(const std::vector<Atom>& atoms,
   return ids;
 }
 
-}  // namespace modernqc::molecule
+}  // namespace lmp2_1m2m::molecule

@@ -1,6 +1,6 @@
 # HPC use
 
-LMP2 uses one MPI rank per node by default and OpenMP within each rank. This
+LMP2-1M2M uses one MPI rank per node by default and OpenMP within each rank. This
 layout avoids replicated localized OVOV storage and gives each rank the full
 node-local memory allowance.
 
@@ -9,7 +9,7 @@ node-local memory allowance.
 Request CPU nodes according to the site policy, then run inside the allocation:
 
 ```bash
-./LMP2 geometry.xyz \
+./LMP2-1M2M geometry.xyz \
   --basis avdz \
   --mode full \
   --quadrature minimax \
@@ -36,8 +36,8 @@ cmake -S . -B build/hpc -G Ninja \
   -DHDF5_PREFER_PARALLEL=ON \
   -DBUILD_TESTING=OFF
 
-cmake --build build/hpc --target lmp2_engine -j 8
-export LMP2_ENGINE="$PWD/build/hpc/lmp2_engine"
+cmake --build build/hpc --target lmp2_1m2m_engine -j 8
+export LMP2_1M2M_ENGINE="$PWD/build/hpc/lmp2_1m2m_engine"
 ```
 
 Module names and dependency paths are site-specific and intentionally not

@@ -13,10 +13,10 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "MODERNQC_ENABLE_MPI": "ON",
-        "MODERNQC_ENABLE_OPENMP": "ON",
-        "MODERNQC_ENABLE_LIBINT2": "ON",
-        "MODERNQC_ENABLE_HDF5": "ON",
+        "LMP2_1M2M_ENABLE_MPI": "ON",
+        "LMP2_1M2M_ENABLE_OPENMP": "ON",
+        "LMP2_1M2M_ENABLE_LIBINT2": "ON",
+        "LMP2_1M2M_ENABLE_HDF5": "ON",
         "BUILD_TESTING": "OFF"
       }
     },
@@ -42,8 +42,8 @@
       "inherits": "debug",
       "displayName": "Undefined behavior sanitizer",
       "cacheVariables": {
-        "MODERNQC_ENABLE_SANITIZERS": "ON",
-        "MODERNQC_SANITIZER_SET": "undefined"
+        "LMP2_1M2M_ENABLE_SANITIZERS": "ON",
+        "LMP2_1M2M_SANITIZER_SET": "undefined"
       }
     }
   ],

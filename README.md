@@ -1,5 +1,7 @@
 # LMP2-1M2M
 
+Paper: [DOI: 10.1021/acs.jctc.6c01287](https://doi.org/10.1021/acs.jctc.6c01287).
+
 LMP2-1M2M calculates localized Laplace-transform MP2 energies for neutral water
 clusters. It performs RHF, localizes the complete active occupied and virtual
 spaces with Pipek--Mezey localization, assigns orbitals to water monomers with
@@ -10,14 +12,14 @@ correlation contributions.
 The public command is intentionally small:
 
 ```bash
-./LMP2 examples/water_tetramer.xyz
+./LMP2-1M2M examples/water_tetramer.xyz
 ```
 
 The included geometry gives the following seven-point minimax result with the
 default settings (wall time is machine-dependent):
 
 ```text
-LMP2 completed
+LMP2-1M2M completed
   Basis:        aug-cc-pVDZ
   RHF:          -304.192978726043748 Eh
   1M:           -0.790063577123332 Eh
@@ -62,7 +64,7 @@ hartree.
 
 ## Build
 
-LMP2 requires a C++20 compiler, CMake 3.25 or newer, Ninja, BLAS/LAPACK,
+LMP2-1M2M requires a C++20 compiler, CMake 3.25 or newer, Ninja, BLAS/LAPACK,
 Eigen3, Libint2, HDF5, MPI, and OpenMP.
 
 On macOS with Homebrew:
@@ -89,7 +91,7 @@ cmake --build --preset release
 Verify the launcher without starting a calculation:
 
 ```bash
-./LMP2 examples/water_monomer.xyz --dry-run
+./LMP2-1M2M examples/water_monomer.xyz --dry-run
 ```
 
 Optionally install the built command under a chosen prefix:
@@ -97,7 +99,7 @@ Optionally install the built command under a chosen prefix:
 ```bash
 cmake --install build/release --prefix "$HOME/.local"
 export PATH="$HOME/.local/bin:$PATH"
-LMP2 examples/water_monomer.xyz
+LMP2-1M2M examples/water_monomer.xyz
 ```
 
 ### Container build
@@ -105,8 +107,8 @@ LMP2 examples/water_monomer.xyz
 If Docker is available, it can supply the compiler and libraries:
 
 ```bash
-docker build -t lmp2 .
-docker run --rm -v "$PWD:/work" -w /work lmp2 \
+docker build -t lmp2_1m2m .
+docker run --rm -v "$PWD:/work" -w /work lmp2_1m2m \
   examples/water_monomer.xyz --output results/container-test
 ```
 
@@ -115,26 +117,26 @@ docker run --rm -v "$PWD:/work" -w /work lmp2 \
 Water monomer, default settings:
 
 ```bash
-./LMP2 examples/water_monomer.xyz
+./LMP2-1M2M examples/water_monomer.xyz
 ```
 
 The included cyclic water tetramer, using the default aug-cc-pVDZ basis and
 full 1M--4M decomposition:
 
 ```bash
-./LMP2 examples/water_tetramer.xyz
+./LMP2-1M2M examples/water_tetramer.xyz
 ```
 
 The same tetramer with aug-cc-pVTZ:
 
 ```bash
-./LMP2 examples/water_tetramer.xyz --basis avtz
+./LMP2-1M2M examples/water_tetramer.xyz --basis avtz
 ```
 
 Approximate tetramer 1M+2M truncation:
 
 ```bash
-./LMP2 examples/water_tetramer.xyz --mode 1m2m
+./LMP2-1M2M examples/water_tetramer.xyz --mode 1m2m
 ```
 
 The `1m2m` mode deliberately omits every 3M and 4M excitation contribution.
@@ -162,8 +164,8 @@ Existing nonempty output directories are never overwritten.
 Reuse a completed RHF checkpoint and its localization sidecar:
 
 ```bash
-./LMP2 examples/water_tetramer.xyz \
-  --checkpoint results/LMP2-PREVIOUS/rhf.h5 \
+./LMP2-1M2M examples/water_tetramer.xyz \
+  --checkpoint results/LMP2-1M2M-PREVIOUS/rhf.h5 \
   --output results/water-dimer-restart
 ```
 
@@ -175,17 +177,17 @@ silently changing the orbital space.
 On a workstation:
 
 ```bash
-./LMP2 examples/water_dimer.xyz --ranks 2 --threads 8
+./LMP2-1M2M examples/water_dimer.xyz --ranks 2 --threads 8
 ```
 
 Inside a Slurm allocation, the launcher uses one MPI rank per requested node:
 
 ```bash
-./LMP2 cluster.xyz --ranks 4 --threads 128
+./LMP2-1M2M cluster.xyz --ranks 4 --threads 128
 ```
 
 The program sets unrelated BLAS thread counts to one and uses OpenMP inside
-the LMP2 kernels. Request physical cores and enough memory for the localized
+the LMP2-1M2M kernels. Request physical cores and enough memory for the localized
 OVOV tensor. The smart planner leaves a node-local memory safety margin and
 fails before energy evaluation if the explicit localized cache cannot fit.
 
@@ -208,8 +210,8 @@ seven minimax points before treating a new system class or basis as
 converged:
 
 ```bash
-./LMP2 cluster.xyz --points 6 --output results/q6
-./LMP2 cluster.xyz --points 7 --output results/q7
+./LMP2-1M2M cluster.xyz --points 6 --output results/q6
+./LMP2-1M2M cluster.xyz --points 7 --output results/q7
 ```
 
 Do not weaken the `0.8` assignment gate merely to finish a calculation. A
@@ -238,7 +240,7 @@ for every geometry or basis.
 Build the focused tests with:
 
 ```bash
-cmake --preset debug -DMODERNQC_FETCH_TEST_DEPENDENCIES=ON
+cmake --preset debug -DLMP2_1M2M_FETCH_TEST_DEPENDENCIES=ON
 cmake --build --preset debug
 ctest --preset debug
 ```

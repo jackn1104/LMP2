@@ -1,7 +1,7 @@
-#include "modernqc/mp2/canonical_mp2.hpp"
+#include "lmp2_1m2m/mp2/canonical_mp2.hpp"
 
-#include "modernqc/integrals/integral_provider.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/integrals/integral_provider.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 [[nodiscard]] std::size_t checked_product(
@@ -306,4 +306,4 @@ CanonicalMp2Result compute_canonical_mp2(
   };
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

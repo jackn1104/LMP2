@@ -1,4 +1,4 @@
-#include "modernqc/molecule/xyz_reader.hpp"
+#include "lmp2_1m2m/molecule/xyz_reader.hpp"
 
 #include <cmath>
 #include <fstream>
@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace modernqc::molecule {
+namespace lmp2_1m2m::molecule {
 namespace {
 
 [[nodiscard]] std::size_t parse_atom_count(const std::string& line) {
@@ -88,4 +88,4 @@ std::vector<Atom> read_xyz_file(const std::filesystem::path& path,
   }
 }
 
-}  // namespace modernqc::molecule
+}  // namespace lmp2_1m2m::molecule

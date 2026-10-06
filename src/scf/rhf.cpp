@@ -1,8 +1,8 @@
-#include "modernqc/scf/rhf.hpp"
+#include "lmp2_1m2m/scf/rhf.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
-#include "modernqc/linalg/orthogonalization.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/orthogonalization.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,11 +17,11 @@
 #include <utility>
 #include <vector>
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 #include <mpi.h>
 #endif
 
-namespace modernqc::scf {
+namespace lmp2_1m2m::scf {
 namespace {
 
 struct Orbitals {
@@ -246,7 +246,7 @@ void validate_options(const RhfOptions& options) {
      options.fock_threads == 0) {
     throw std::invalid_argument("RHF parallel topology is invalid");
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     int initialized = 0;
     if(MPI_Initialized(&initialized) != MPI_SUCCESS || initialized == 0) {
@@ -274,7 +274,7 @@ void validate_options(const RhfOptions& options) {
 #endif
 }
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 void check_mpi(int status, const char* operation) {
   if(status != MPI_SUCCESS) {
     throw std::runtime_error(std::string{"MPI failure while "} + operation);
@@ -461,7 +461,7 @@ RhfResult run_rhf(
         std::chrono::duration<double>(std::chrono::steady_clock::now() -
                                      fock_start)
             .count();
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       propagate_collective_failure(direct_error != nullptr);
     }
@@ -476,7 +476,7 @@ RhfResult run_rhf(
     const std::uint64_t local_owned =
         local_direct->owned_shell_quartets;
     integrals::DirectFockResult direct = std::move(*local_direct);
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       const auto [minimum_owned, maximum_owned] =
           owned_quartet_range(local_owned);
@@ -672,4 +672,4 @@ RhfResult run_rhf(
       ", commutator RMS=" + std::to_string(last.commutator_rms));
 }
 
-}  // namespace modernqc::scf
+}  // namespace lmp2_1m2m::scf

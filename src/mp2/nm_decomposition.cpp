@@ -1,4 +1,4 @@
-#include "modernqc/mp2/nm_decomposition.hpp"
+#include "lmp2_1m2m/mp2/nm_decomposition.hpp"
 
 #include <algorithm>
 #include <array>
@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 [[nodiscard]] std::size_t checked_term_count(std::size_t occupied,
@@ -264,4 +264,4 @@ NmEnergyDecomposition decompose_localized_mp2_terms(
   return result;
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

@@ -2,7 +2,7 @@
 
 ## 0.1.0 - 2026-08-10
 
-- Added the `LMP2` command for validated water-cluster XYZ input, automatic
+- Added the `LMP2-1M2M` command for validated water-cluster XYZ input, automatic
   workstation or Slurm launch, live progress, restart handling, and
   non-overwriting result directories.
 - Made the exact four-center `localized_cached_ovov` representation the only

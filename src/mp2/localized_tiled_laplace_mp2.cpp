@@ -1,8 +1,8 @@
-#include "modernqc/mp2/localized_tiled_laplace_mp2.hpp"
+#include "lmp2_1m2m/mp2/localized_tiled_laplace_mp2.hpp"
 
-#include "modernqc/integrals/integral_provider.hpp"
-#include "modernqc/linalg/matrix.hpp"
-#include "modernqc/mp2/nm_decomposition.hpp"
+#include "lmp2_1m2m/integrals/integral_provider.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
+#include "lmp2_1m2m/mp2/nm_decomposition.hpp"
 
 #include <algorithm>
 #include <array>
@@ -24,15 +24,15 @@
 #include <utility>
 #include <vector>
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #include <omp.h>
 #endif
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 #include <mpi.h>
 #endif
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 constexpr long double log_minimum_normal =
@@ -197,7 +197,7 @@ struct BatchedSelectedOperation {
           for(std::size_t local_a = 0; local_a < virtual_count;
               ++local_a) {
             double sum = 0.0;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd reduction(+ : sum)
 #endif
@@ -210,7 +210,7 @@ struct BatchedSelectedOperation {
           }
         }
       };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(threads))
   {
     const std::size_t thread =
@@ -314,7 +314,7 @@ void accumulate_batched_selected_operation(
         for(std::size_t local_b = 0; local_b < right_virtual.count;
             ++local_b) {
           double sum = 0.0;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd reduction(+ : sum)
 #endif
@@ -435,9 +435,9 @@ void accumulate_batched_selected_operation(
 
 void validate_topology(const LocalizedTiledLaplaceMp2Options& options) {
   if(options.mpi_ranks == 0 || options.mpi_rank >= options.mpi_ranks) {
-    throw std::invalid_argument("localized LMP2 MPI topology is invalid");
+    throw std::invalid_argument("localized LMP2-1M2M MPI topology is invalid");
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     int initialized = 0;
     int rank = 0;
@@ -448,12 +448,12 @@ void validate_topology(const LocalizedTiledLaplaceMp2Options& options) {
        ranks < 1 || static_cast<std::size_t>(rank) != options.mpi_rank ||
        static_cast<std::size_t>(ranks) != options.mpi_ranks) {
       throw std::runtime_error(
-          "localized LMP2 topology does not match MPI_COMM_WORLD");
+          "localized LMP2-1M2M topology does not match MPI_COMM_WORLD");
     }
   }
 #else
   if(options.mpi_ranks != 1) {
-    throw std::runtime_error("multiple localized LMP2 ranks require MPI");
+    throw std::runtime_error("multiple localized LMP2-1M2M ranks require MPI");
   }
 #endif
 }
@@ -461,9 +461,9 @@ void validate_topology(const LocalizedTiledLaplaceMp2Options& options) {
 [[nodiscard]] double orthogonality_error(const linalg::Matrix& rotation) {
   if(rotation.empty() || rotation.rows() != rotation.columns()) {
     throw std::invalid_argument(
-        "localized LMP2 rotations must be nonempty and square");
+        "localized LMP2-1M2M rotations must be nonempty and square");
   }
-  linalg::require_finite(rotation, "localized LMP2 rotation");
+  linalg::require_finite(rotation, "localized LMP2-1M2M rotation");
   const linalg::Matrix metric =
       linalg::multiply(linalg::transpose(rotation), rotation);
   double error = 0.0;
@@ -479,14 +479,14 @@ void validate_topology(const LocalizedTiledLaplaceMp2Options& options) {
 void validate_assignments(const std::vector<MonomerAssignment>& assignments,
                           std::size_t expected, const char* space) {
   if(assignments.size() != expected) {
-    throw std::invalid_argument(std::string{"localized LMP2 "} + space +
+    throw std::invalid_argument(std::string{"localized LMP2-1M2M "} + space +
                                 " assignment count is incompatible");
   }
   for(const MonomerAssignment& assignment : assignments) {
     if(assignment.monomer_id < 0 ||
        !std::isfinite(assignment.confidence) ||
        assignment.confidence < 0.0 || assignment.confidence > 1.0) {
-      throw std::invalid_argument(std::string{"localized LMP2 "} + space +
+      throw std::invalid_argument(std::string{"localized LMP2-1M2M "} + space +
                                   " assignment is invalid");
     }
   }
@@ -852,7 +852,7 @@ struct GroupedSpace {
 
 [[nodiscard]] double safe_scale(long double exponent) {
   if(!std::isfinite(exponent) || exponent > 0.0L) {
-    throw std::runtime_error("localized LMP2 scaling exponent is invalid");
+    throw std::runtime_error("localized LMP2-1M2M scaling exponent is invalid");
   }
   return exponent < log_minimum_normal
              ? 0.0
@@ -884,7 +884,7 @@ struct GroupedSpace {
   if(rotation.rows() != energies.size() ||
      rotation.columns() != energies.size()) {
     throw std::invalid_argument(
-        "cached localized LMP2 rotation dimensions are invalid");
+        "cached localized LMP2-1M2M rotation dimensions are invalid");
   }
   linalg::Matrix result{rotation.rows(), rotation.columns()};
   for(std::size_t canonical = 0; canonical < rotation.rows(); ++canonical) {
@@ -914,7 +914,7 @@ struct GroupedSpace {
   linalg::Matrix propagator = linalg::multiply(
       linalg::transpose(rotation), canonical_to_scaled_local);
   linalg::require_finite(propagator,
-                         "localized LMP2 dense propagator");
+                         "localized LMP2-1M2M dense propagator");
   return propagator;
 }
 
@@ -990,13 +990,13 @@ struct CachedRotationResult {
      virtual_count >
          std::numeric_limits<std::size_t>::max() / occupied_count) {
     throw std::overflow_error(
-        "cached localized LMP2 pair count overflows size_t");
+        "cached localized LMP2-1M2M pair count overflows size_t");
   }
   const std::size_t pair_count = occupied_count * virtual_count;
   if(pair_count != 0 &&
      pair_count > std::numeric_limits<std::size_t>::max() / pair_count) {
     throw std::overflow_error(
-        "cached localized LMP2 tensor size overflows size_t");
+        "cached localized LMP2-1M2M tensor size overflows size_t");
   }
   if(canonical.size() != pair_count * pair_count ||
      occupied_transform.rows() != occupied_count ||
@@ -1004,7 +1004,7 @@ struct CachedRotationResult {
      virtual_transform.rows() != virtual_count ||
      virtual_transform.columns() != virtual_count) {
     throw std::invalid_argument(
-        "cached localized LMP2 tensor/rotation dimensions are invalid");
+        "cached localized LMP2-1M2M tensor/rotation dimensions are invalid");
   }
   std::vector<double> first(canonical.size(), 0.0);
   std::vector<double> second(canonical.size(), 0.0);
@@ -1036,7 +1036,7 @@ struct CachedRotationResult {
     const std::size_t columns = pair_count * occupied_count;
     const int all_column_dimension = blas_dimension(
         columns, "cached OVOV virtual rotation column count");
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
     (void)all_column_dimension;
 #pragma omp parallel num_threads(threads)
     {
@@ -1071,7 +1071,7 @@ struct CachedRotationResult {
 
   const auto rotate_occupied_rows = [&](const std::vector<double>& input,
                                         std::vector<double>& output) {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) num_threads(threads)
 #endif
     for(std::size_t other = 0; other < pair_count; ++other) {
@@ -1088,7 +1088,7 @@ struct CachedRotationResult {
     constexpr std::size_t block_size = 32;
     const std::size_t blocks =
         (pair_count + block_size - 1U) / block_size;
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for collapse(2) schedule(static) num_threads(threads)
 #endif
     for(std::size_t column_block = 0; column_block < blocks;
@@ -1203,7 +1203,7 @@ struct CachedOvovMemory {
   };
 }
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 void broadcast_doubles(std::vector<double>& values) {
   std::size_t offset = 0;
   while(offset < values.size()) {
@@ -1219,7 +1219,7 @@ void broadcast_doubles(std::vector<double>& values) {
 }
 #endif
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 void reduce_results(std::array<double, maximum_mp2_body_order + 1>& energy,
                     std::array<std::uint64_t, 5>& counters,
                     std::size_t& peak_bytes) {
@@ -1229,16 +1229,16 @@ void reduce_results(std::array<double, maximum_mp2_body_order + 1>& energy,
      MPI_Allreduce(MPI_IN_PLACE, counters.data(),
                    static_cast<int>(counters.size()), MPI_UINT64_T, MPI_SUM,
                    MPI_COMM_WORLD) != MPI_SUCCESS) {
-    throw std::runtime_error("localized LMP2 MPI reduction failed");
+    throw std::runtime_error("localized LMP2-1M2M MPI reduction failed");
   }
   std::uint64_t peak = static_cast<std::uint64_t>(peak_bytes);
   if(MPI_Allreduce(MPI_IN_PLACE, &peak, 1, MPI_UINT64_T, MPI_MAX,
                    MPI_COMM_WORLD) != MPI_SUCCESS) {
-    throw std::runtime_error("localized LMP2 peak-memory reduction failed");
+    throw std::runtime_error("localized LMP2-1M2M peak-memory reduction failed");
   }
   if(peak > static_cast<std::uint64_t>(
                 std::numeric_limits<std::size_t>::max())) {
-    throw std::overflow_error("localized LMP2 peak memory exceeds size_t");
+    throw std::overflow_error("localized LMP2-1M2M peak memory exceeds size_t");
   }
   peak_bytes = static_cast<std::size_t>(peak);
 }
@@ -1253,7 +1253,7 @@ struct DistributedCanonicalOvov {
   double communication_seconds{0.0};
 };
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 [[nodiscard]] DistributedCanonicalOvov
 build_mpi_distributed_separable_canonical_ovov(
     const integrals::Libint2IntegralProvider& provider,
@@ -1548,7 +1548,7 @@ build_mpi_distributed_separable_canonical_ovov(
     const LocalizedTiledLaplaceMp2Options& options,
     std::size_t persistent_bytes, std::size_t left_occupied_batch_size,
     bool report_progress) {
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     return build_mpi_distributed_separable_canonical_ovov(
         provider, canonical_occupied, canonical_virtual, options,
@@ -1679,7 +1679,7 @@ build_mpi_distributed_separable_canonical_ovov(
   }
   result.build_seconds = elapsed_seconds(build_start);
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     int failed = build_error ? 1 : 0;
     if(MPI_Allreduce(MPI_IN_PLACE, &failed, 1, MPI_INT, MPI_MAX,
@@ -1709,7 +1709,7 @@ void reduce_panel_to_owner(const std::vector<double>& partial,
   if(owner >= options.mpi_ranks) {
     throw std::invalid_argument("distributed OVOV panel owner is invalid");
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     if(owner > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
       throw std::overflow_error("distributed OVOV panel owner exceeds int");
@@ -1776,7 +1776,7 @@ void reduce_panel_to_owner(const std::vector<double>& partial,
   constexpr double alpha = 1.0;
   constexpr double beta = 0.0;
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(threads))
   {
     const std::size_t worker =
@@ -1811,7 +1811,7 @@ void reduce_panel_to_owner(const std::vector<double>& partial,
          virtual_rotated.data(), &virtual_dimension);
 #endif
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) num_threads(static_cast<int>(threads))
 #endif
   for(std::size_t column = 0; column < panel_columns; ++column) {
@@ -1854,12 +1854,12 @@ void accumulate_full_localized_exchange_slice(
   std::vector<std::array<long double,
                          maximum_mp2_body_order + 1>>
       thread_energy(threads);
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) num_threads(static_cast<int>(threads))
 #endif
   for(std::size_t exchange_column = 0;
       exchange_column < exchange_right_pairs.count; ++exchange_column) {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
     const std::size_t worker =
         static_cast<std::size_t>(omp_get_thread_num());
 #else
@@ -1958,7 +1958,7 @@ void accumulate_full_localized_exchange_slice(
   constexpr char transpose = 'T';
   constexpr double alpha = 1.0;
   constexpr double beta = 0.0;
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) num_threads(threads)
 #endif
   for(std::size_t panel_column = 0;
@@ -2196,7 +2196,7 @@ void accumulate_full_localized_exchange_slice(
     }
   }
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     if(MPI_Allreduce(MPI_IN_PLACE, &initial_lookup_failed, 1, MPI_INT,
                      MPI_MAX, MPI_COMM_WORLD) != MPI_SUCCESS) {
@@ -2325,12 +2325,12 @@ void accumulate_full_localized_exchange_slice(
 
 void reduce_maximum_timings(std::array<double, 6>& timings,
                             const LocalizedTiledLaplaceMp2Options& options) {
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1 &&
      MPI_Allreduce(MPI_IN_PLACE, timings.data(),
                    static_cast<int>(timings.size()), MPI_DOUBLE, MPI_MAX,
                    MPI_COMM_WORLD) != MPI_SUCCESS) {
-    throw std::runtime_error("localized LMP2 timing reduction failed");
+    throw std::runtime_error("localized LMP2-1M2M timing reduction failed");
   }
 #else
   (void)options;
@@ -2340,7 +2340,7 @@ void reduce_maximum_timings(std::array<double, 6>& timings,
 void reduce_maximum_size(std::size_t& value,
                          const LocalizedTiledLaplaceMp2Options& options,
                          const char* description) {
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     std::uint64_t reduced = static_cast<std::uint64_t>(value);
     if(MPI_Allreduce(MPI_IN_PLACE, &reduced, 1, MPI_UINT64_T, MPI_MAX,
@@ -2364,7 +2364,7 @@ void reduce_maximum_size(std::size_t& value,
 void reduce_sum_size(std::size_t& value,
                      const LocalizedTiledLaplaceMp2Options& options,
                      const char* description) {
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     std::uint64_t reduced = static_cast<std::uint64_t>(value);
     if(MPI_Allreduce(MPI_IN_PLACE, &reduced, 1, MPI_UINT64_T, MPI_SUM,
@@ -2388,7 +2388,7 @@ void reduce_sum_size(std::size_t& value,
 void reduce_maximum_double(double& value,
                            const LocalizedTiledLaplaceMp2Options& options,
                            const char* description) {
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1 &&
      MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_DOUBLE, MPI_MAX,
                    MPI_COMM_WORLD) != MPI_SUCCESS) {
@@ -2430,7 +2430,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
      !std::isfinite(options.assignment_confidence_threshold) ||
      options.assignment_confidence_threshold < 0.0 ||
      options.assignment_confidence_threshold > 1.0) {
-    throw std::invalid_argument("localized tiled LMP2 options are invalid");
+    throw std::invalid_argument("localized tiled LMP2-1M2M options are invalid");
   }
   validate_topology(options);
   const std::size_t ao_count = provider.basis_metadata().number_of_aos;
@@ -2443,10 +2443,10 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
      orthogonality_error(virtual_rotation) > 2.0e-10 || fit.nodes.empty() ||
      fit.nodes.size() != fit.weights.size()) {
     throw std::invalid_argument(
-        "localized tiled LMP2 dimensions, rotations, or quadrature are invalid");
+        "localized tiled LMP2-1M2M dimensions, rotations, or quadrature are invalid");
   }
   linalg::require_finite(canonical_coefficients,
-                         "localized tiled LMP2 canonical coefficients");
+                         "localized tiled LMP2-1M2M canonical coefficients");
   validate_assignments(occupied_assignments,
                        active_occupied_indices.size(), "occupied");
   validate_assignments(virtual_assignments, virtual_indices.size(), "virtual");
@@ -2458,14 +2458,14 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   for(const std::size_t index : active_occupied_indices) {
     if(index >= orbital_energies.size() ||
        !std::isfinite(orbital_energies[index])) {
-      throw std::invalid_argument("localized LMP2 occupied energy is invalid");
+      throw std::invalid_argument("localized LMP2-1M2M occupied energy is invalid");
     }
     occupied_energies.push_back(orbital_energies[index]);
   }
   for(const std::size_t index : virtual_indices) {
     if(index >= orbital_energies.size() ||
        !std::isfinite(orbital_energies[index])) {
-      throw std::invalid_argument("localized LMP2 virtual energy is invalid");
+      throw std::invalid_argument("localized LMP2-1M2M virtual energy is invalid");
     }
     virtual_energies.push_back(orbital_energies[index]);
   }
@@ -2474,7 +2474,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   const double virtual_minimum =
       *std::min_element(virtual_energies.begin(), virtual_energies.end());
   if(virtual_minimum <= occupied_maximum) {
-    throw std::runtime_error("localized LMP2 orbital energy gap is nonpositive");
+    throw std::runtime_error("localized LMP2-1M2M orbital energy gap is nonpositive");
   }
   const double energy_shift = 0.5 * (occupied_maximum + virtual_minimum);
 
@@ -2488,7 +2488,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       occupied.blocks, virtuals.blocks, options.execution_mode,
       omitted_terms, omitted_tasks_per_point);
   if(tasks.empty()) {
-    throw std::runtime_error("localized LMP2 task space is empty");
+    throw std::runtime_error("localized LMP2-1M2M task space is empty");
   }
   std::vector<unsigned char> task_is_active(
       tasks.size(), static_cast<unsigned char>(1));
@@ -2505,18 +2505,18 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       select_columns(canonical_coefficients, virtual_indices);
   const std::size_t coefficient_elements = checked_add(
       canonical_occupied.size(), canonical_virtual.size(),
-      "localized LMP2 coefficient storage");
+      "localized LMP2-1M2M coefficient storage");
   if(coefficient_elements >
      std::numeric_limits<std::size_t>::max() / 3U) {
     throw std::overflow_error(
-        "localized LMP2 coefficient element count overflows size_t");
+        "localized LMP2-1M2M coefficient element count overflows size_t");
   }
   const std::size_t persistent_bytes = checked_bytes(
       3U * coefficient_elements,
-      "localized LMP2 canonical/scaled/localized coefficient storage");
+      "localized LMP2-1M2M canonical/scaled/localized coefficient storage");
   if(persistent_bytes >= options.maximum_additional_memory_bytes) {
     throw std::runtime_error(
-        "localized LMP2 coefficient storage exceeds the memory limit");
+        "localized LMP2-1M2M coefficient storage exceeds the memory limit");
   }
 
   CachedOvovMemory cached_memory{};
@@ -2675,7 +2675,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       }
       timings[0] += elapsed_seconds(build_start);
     }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       int failed = build_error ? 1 : 0;
       if(MPI_Allreduce(MPI_IN_PLACE, &failed, 1, MPI_INT, MPI_MAX,
@@ -2696,7 +2696,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       std::rethrow_exception(build_error);
     }
     const auto broadcast_start = std::chrono::steady_clock::now();
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       broadcast_doubles(canonical_ovov);
     }
@@ -2713,7 +2713,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       const double node = fit.nodes[point];
       const double weight = fit.weights[point];
       if(!std::isfinite(node) || node <= 0.0 || !std::isfinite(weight)) {
-        throw std::invalid_argument("localized LMP2 quadrature is invalid");
+        throw std::invalid_argument("localized LMP2-1M2M quadrature is invalid");
       }
       const linalg::Matrix occupied_transform = scaled_rotation(
           occupied_energies, energy_shift, node, true, occupied.rotation);
@@ -2821,7 +2821,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
     } catch(...) {
       replicated_build_error = std::current_exception();
     }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(replicated) {
       int failed = replicated_build_error ? 1 : 0;
       if(MPI_Allreduce(MPI_IN_PLACE, &failed, 1, MPI_INT, MPI_MAX,
@@ -3035,7 +3035,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
           panel_columns, "distributed selected OVOV panel width");
       if(local_canonical_pairs != 0) {
         const auto rotation_start = std::chrono::steady_clock::now();
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
         {
           const std::size_t worker =
@@ -3175,7 +3175,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
             point_energy);
         timings[4] += elapsed_seconds(accumulation_start);
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
         if(options.mpi_ranks > 1) {
           constexpr std::size_t message_bytes =
               64U * 1024U * 1024U;
@@ -3266,7 +3266,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
         if(options.report_laplace_point_progress) {
           std::array<long double,
                      maximum_mp2_body_order + 1> reported = point_energy;
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
           if(options.mpi_ranks > 1 &&
              MPI_Allreduce(MPI_IN_PLACE, reported.data(),
                            static_cast<int>(reported.size()),
@@ -3331,7 +3331,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
           }
         }
       }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
       if(!replicated && options.mpi_ranks > 1) {
         std::size_t offset = 0;
         while(offset < norms.size()) {
@@ -3366,7 +3366,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
         if(!std::isfinite(node) || node <= 0.0 ||
            !std::isfinite(weight)) {
           throw std::invalid_argument(
-              "localized LMP2 screening quadrature is invalid");
+              "localized LMP2-1M2M screening quadrature is invalid");
         }
         const linalg::Matrix occupied_transform = localized_cached_backend
             ? localized_propagator(occupied_energies, energy_shift, node,
@@ -3391,7 +3391,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
               right_vector_norms, one_sided_integral_norms, weight);
         }
       }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
       if(replicated && options.mpi_ranks > 1) {
         std::size_t offset = 0;
         while(offset < task_bounds.size()) {
@@ -3455,7 +3455,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       const double node = fit.nodes[point];
       const double weight = fit.weights[point];
       if(!std::isfinite(node) || node <= 0.0 || !std::isfinite(weight)) {
-        throw std::invalid_argument("localized LMP2 quadrature is invalid");
+        throw std::invalid_argument("localized LMP2-1M2M quadrature is invalid");
       }
       const linalg::Matrix occupied_transform = localized_cached_backend
           ? localized_propagator(occupied_energies, energy_shift, node,
@@ -3536,7 +3536,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
           point_retained_contributions;
       std::uint64_t global_screened_contributions =
           point_screened_contributions;
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
       if(!replicated && options.mpi_ranks > 1 &&
          (MPI_Allreduce(MPI_IN_PLACE, &global_entry_count, 1,
                         MPI_UINT64_T, MPI_SUM,
@@ -3618,7 +3618,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
             local_energy[2] - energy_two_before,
             point_omitted_bound,
         };
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
         if(!replicated && options.mpi_ranks > 1) {
           reported_retained = global_retained_contributions;
           reported_screened = global_screened_contributions;
@@ -3734,7 +3734,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
         if(!std::isfinite(node) || node <= 0.0 ||
            !std::isfinite(fit.weights[point])) {
           throw std::invalid_argument(
-              "localized LMP2 quadrature is invalid");
+              "localized LMP2-1M2M quadrature is invalid");
         }
         localized_occupied_by_point.push_back(
             scaled_localized_coefficients(
@@ -3978,7 +3978,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
                               output);
                         }
                       };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
                   {
                     const std::size_t thread =
@@ -4035,7 +4035,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
           owned_left_occupied.count == 0 ? 0U : 1U;
       std::uint64_t reported_evaluated = batch_evaluated;
       std::uint64_t reported_screened = batch_screened;
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
       if(options.mpi_ranks > 1 &&
          (MPI_Allreduce(MPI_IN_PLACE, &reported_ao_passes, 1,
                         MPI_UINT64_T, MPI_SUM,
@@ -4140,7 +4140,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
               local_energy[1] - energy_one_before,
               local_energy[2] - energy_two_before,
           };
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
           if(options.mpi_ranks > 1 &&
              MPI_Allreduce(MPI_IN_PLACE, reported_energy.data(),
                            static_cast<int>(reported_energy.size()),
@@ -4176,7 +4176,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
       const double node = fit.nodes[point];
       const double weight = fit.weights[point];
       if(!std::isfinite(node) || node <= 0.0 || !std::isfinite(weight)) {
-        throw std::invalid_argument("localized LMP2 quadrature is invalid");
+        throw std::invalid_argument("localized LMP2-1M2M quadrature is invalid");
       }
       const auto rotation_start = std::chrono::steady_clock::now();
       const linalg::Matrix localized_occupied =
@@ -4235,7 +4235,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
             peak_bytes,
             checked_add(persistent_bytes,
                         direct.estimated_peak_additional_bytes,
-                        "localized LMP2 direct-transform peak"));
+                        "localized LMP2-1M2M direct-transform peak"));
         const bool reuse_exchange = !task.distinct_virtual_blocks;
         integrals::OvovTileResult exchange;
         if(reuse_exchange) {
@@ -4243,12 +4243,12 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
               counters[2], 1, "localized reused-exchange count");
         } else {
           const std::size_t retained = checked_bytes(
-              direct.values.size(), "localized LMP2 retained direct tile");
+              direct.values.size(), "localized LMP2-1M2M retained direct tile");
           if(checked_add(persistent_bytes, retained,
-                         "localized LMP2 exchange storage") >=
+                         "localized LMP2-1M2M exchange storage") >=
              options.maximum_additional_memory_bytes) {
             throw std::runtime_error(
-                "localized LMP2 memory is insufficient for exchange tile");
+                "localized LMP2-1M2M memory is insufficient for exchange tile");
           }
           const auto exchange_transform_start =
               std::chrono::steady_clock::now();
@@ -4283,9 +4283,9 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
               peak_bytes,
               checked_add(
                   checked_add(persistent_bytes, retained,
-                              "localized LMP2 retained direct peak"),
+                              "localized LMP2-1M2M retained direct peak"),
                   exchange.estimated_peak_additional_bytes,
-                  "localized LMP2 exchange-transform peak"));
+                  "localized LMP2-1M2M exchange-transform peak"));
         }
 
         const auto accumulation_start = std::chrono::steady_clock::now();
@@ -4331,7 +4331,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
             counters[3] - counters_before[3],
             counters[4] - counters_before[4],
         };
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
         if(options.mpi_ranks > 1 &&
            (MPI_Allreduce(MPI_IN_PLACE, reported_energy.data(),
                           static_cast<int>(reported_energy.size()),
@@ -4370,7 +4370,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   for(std::size_t body = 1; body <= maximum_mp2_body_order; ++body) {
     energy[body] = static_cast<double>(local_energy[body]);
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     reduce_results(energy, counters, peak_bytes);
     if(MPI_Allreduce(MPI_IN_PLACE,
@@ -4389,19 +4389,19 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   reduce_maximum_timings(timings, options);
   reduce_maximum_double(
       direct_ovov_transform_seconds, options,
-      "localized LMP2 direct OVOV transform time");
+      "localized LMP2-1M2M direct OVOV transform time");
   canonical_ovov_stored_bytes_global = canonical_ovov_max_local_bytes;
   reduce_sum_size(canonical_ovov_stored_bytes_global, options,
-                  "localized LMP2 canonical OVOV global stored-byte sum");
+                  "localized LMP2-1M2M canonical OVOV global stored-byte sum");
   reduce_maximum_size(canonical_ovov_max_local_bytes, options,
-                      "localized LMP2 canonical OVOV local-byte maximum");
+                      "localized LMP2-1M2M canonical OVOV local-byte maximum");
   localized_ovov_stored_bytes_global = localized_ovov_max_local_bytes;
   reduce_sum_size(localized_ovov_stored_bytes_global, options,
-                  "localized LMP2 localized OVOV global stored-byte sum");
+                  "localized LMP2-1M2M localized OVOV global stored-byte sum");
   reduce_maximum_size(localized_ovov_max_local_bytes, options,
-                      "localized LMP2 localized OVOV local-byte maximum");
+                      "localized LMP2-1M2M localized OVOV local-byte maximum");
   reduce_maximum_double(localized_screening_seconds, options,
-                        "localized LMP2 screening time");
+                        "localized LMP2-1M2M screening time");
   if(localized_direct_selected_backend &&
      (canonical_ovov_bytes != 0U ||
       canonical_ovov_max_local_bytes != 0U ||
@@ -4458,7 +4458,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
     const LocalizedTask& task = tasks[task_index];
     if(decomposition.term_count[task.body_order] >
        std::numeric_limits<std::uint64_t>::max() - task.term_count) {
-      throw std::overflow_error("localized LMP2 term count overflows uint64");
+      throw std::overflow_error("localized LMP2-1M2M term count overflows uint64");
     }
     decomposition.term_count[task.body_order] += task.term_count;
     computed_terms = checked_u64_add(
@@ -4476,7 +4476,7 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   const double total = decomposition.total_energy_hartree();
   if(!std::isfinite(total) || total > 1.0e-12) {
     throw std::runtime_error(
-        "localized LMP2 produced a nonfinite or positive correlation energy");
+        "localized LMP2-1M2M produced a nonfinite or positive correlation energy");
   }
   const std::uint64_t computed_point_tasks = checked_u64_multiply(
       static_cast<std::uint64_t>(fit.nodes.size()),
@@ -4539,4 +4539,4 @@ LocalizedTiledLaplaceMp2Result compute_localized_tiled_laplace_mp2(
   };
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

@@ -1,8 +1,8 @@
-#include "modernqc/integrals/integral_provider.hpp"
+#include "lmp2_1m2m/integrals/integral_provider.hpp"
 
-#include "modernqc/basis/basis_name.hpp"
-#include "modernqc/basis/libint2_basis_builder.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/basis/basis_name.hpp"
+#include "lmp2_1m2m/basis/libint2_basis_builder.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <libint2/engine.h>
 #include <libint2/cgshell_ordering.h>
@@ -11,9 +11,9 @@
 
 #if !defined(LIBINT_SHGSHELL_ORDERING) || \
     !defined(LIBINT_SHGSHELL_ORDERING_STANDARD)
-#error "ModernQC requires Libint2 to expose its solid-harmonic AO ordering"
+#error "LMP2-1M2M requires Libint2 to expose its solid-harmonic AO ordering"
 #elif LIBINT_SHGSHELL_ORDERING != LIBINT_SHGSHELL_ORDERING_STANDARD
-#error "ModernQC requires Libint2 standard solid-harmonic AO ordering"
+#error "LMP2-1M2M requires Libint2 standard solid-harmonic AO ordering"
 #endif
 
 #include <algorithm>
@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #include <omp.h>
 #endif
 
@@ -44,7 +44,7 @@ void dgemm_(const char* transa, const char* transb, const int* m,
             const int* ldc);
 }
 
-namespace modernqc::integrals {
+namespace lmp2_1m2m::integrals {
 namespace {
 
 class Libint2Runtime {
@@ -592,14 +592,14 @@ struct Libint2IntegralProvider::Impl {
     if(libint2::solid_harmonics_ordering() !=
        libint2::SHGShellOrdering_Standard) {
       throw std::runtime_error(
-          "ModernQC requires Libint2 standard solid-harmonic AO ordering");
+          "LMP2-1M2M requires Libint2 standard solid-harmonic AO ordering");
     }
 #endif
     if(static_cast<std::size_t>(backend_basis.nbf()) !=
            metadata.number_of_aos ||
        backend_basis.size() != metadata.shells.size()) {
       throw std::runtime_error(
-          "Libint2 basis and copied ModernQC metadata disagree");
+          "Libint2 basis and copied LMP2-1M2M metadata disagree");
     }
     shell_pair_schwarz_bounds =
         compute_shell_pair_schwarz_bounds(backend_basis);
@@ -1168,7 +1168,7 @@ void Libint2IntegralProvider::for_each_batched_first_index_ao_block(
     linalg::require_finite(
         coefficients, "batched first-index AO coefficients");
   }
-#ifndef MODERNQC_HAS_OPENMP
+#ifndef LMP2_1M2M_HAS_OPENMP
   if(options.threads != 1U) {
     throw std::invalid_argument(
         "batched first-index AO threads require OpenMP support");
@@ -1360,7 +1360,7 @@ void Libint2IntegralProvider::for_each_batched_first_index_ao_block(
                           options.occupied_first + local_i);
                       const double* shell_values =
                           buffer + function_1 * remainder;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd
 #endif
@@ -1400,7 +1400,7 @@ void Libint2IntegralProvider::for_each_batched_first_index_ao_block(
             }
           }
         };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
     {
       const std::size_t thread =
@@ -1512,7 +1512,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
     throw std::invalid_argument(
         "OVOV tile ranges, thread count, or memory limit are invalid");
   }
-#ifndef MODERNQC_HAS_OPENMP
+#ifndef LMP2_1M2M_HAS_OPENMP
   if(options.threads != 1) {
     throw std::invalid_argument(
         "multiple OVOV transform threads require OpenMP support");
@@ -1748,7 +1748,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
                           options.left_occupied_first + local_i);
                       const double* shell_values =
                           buffer + function_1 * rest;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd
 #endif
@@ -1788,7 +1788,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
               }
             }
           };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
       {
         const std::size_t thread =
@@ -1858,7 +1858,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
       const double* canonical_virtual =
           virtual_coefficients.data() +
           options.left_virtual_first * ao_count;
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) \
     num_threads(static_cast<int>(options.threads))
 #endif
@@ -1891,7 +1891,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
               double* output = second_stage.data() +
                                virtual_column * fused_second_rows +
                                row_first;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd
 #endif
@@ -1946,7 +1946,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
                   third_stage.data() + local_j * ao_count;
               for(std::size_t sigma = 0; sigma < ao_count; ++sigma) {
                 double sum = 0.0;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd reduction(+ : sum)
 #endif
@@ -1963,7 +1963,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
               for(std::size_t local_b = 0;
                   local_b < options.right_virtual_count; ++local_b) {
                 double sum = 0.0;
-#if defined(MODERNQC_HAS_OPENMP) && defined(__GNUC__) && \
+#if defined(LMP2_1M2M_HAS_OPENMP) && defined(__GNUC__) && \
     !defined(__clang__)
 #pragma omp simd reduction(+ : sum)
 #endif
@@ -1990,7 +1990,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
             }
           }
         };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
     {
       const std::size_t thread =
@@ -2235,7 +2235,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
   }
 
   linalg::Matrix right_pairs{unique_ao_pair_count, right_pair_count};
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) \
     num_threads(static_cast<int>(options.threads))
 #endif
@@ -2358,7 +2358,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
           }
         }
       };
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
   {
     const std::size_t thread =
@@ -2397,7 +2397,7 @@ OvovTileResult Libint2IntegralProvider::compute_ovov_tile(
     const std::size_t block_count =
         std::min(left_pair_block_size, left_pair_count - first_pair);
     linalg::Matrix left_pairs{block_count, unique_ao_pair_count};
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static) \
     num_threads(static_cast<int>(options.threads))
 #endif
@@ -2477,7 +2477,7 @@ DirectFockResult Libint2IntegralProvider::build_rhf_two_electron(
     throw std::invalid_argument(
         "parallel direct-Fock topology is invalid");
   }
-#ifndef MODERNQC_HAS_OPENMP
+#ifndef LMP2_1M2M_HAS_OPENMP
   if(parallel.threads != 1) {
     throw std::invalid_argument(
         "multiple direct-Fock threads require OpenMP support");
@@ -2649,7 +2649,7 @@ DirectFockResult Libint2IntegralProvider::build_rhf_two_electron(
     }
   };
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(parallel.threads))
   {
     const std::size_t thread =
@@ -2733,4 +2733,4 @@ DirectFockResult Libint2IntegralProvider::build_rhf_two_electron(
   };
 }
 
-}  // namespace modernqc::integrals
+}  // namespace lmp2_1m2m::integrals

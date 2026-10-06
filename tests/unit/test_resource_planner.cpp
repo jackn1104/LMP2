@@ -1,9 +1,9 @@
-#include "modernqc/mp2/resource_planner.hpp"
+#include "lmp2_1m2m/mp2/resource_planner.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("resource planner distributes W20 without replicated storage") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -43,7 +43,7 @@ TEST_CASE("resource planner distributes W20 without replicated storage") {
 }
 
 TEST_CASE("resource planner respects node-local rank memory sharing") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -73,7 +73,7 @@ TEST_CASE("resource planner respects node-local rank memory sharing") {
 }
 
 TEST_CASE("resource planner keeps replication explicit only") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -104,7 +104,7 @@ TEST_CASE("resource planner keeps replication explicit only") {
 }
 
 TEST_CASE("resource planner clamps an unsafe explicit memory request") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -134,7 +134,7 @@ TEST_CASE("resource planner clamps an unsafe explicit memory request") {
 }
 
 TEST_CASE("resource planner exposes direct selected without canonical OVOV") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -195,7 +195,7 @@ TEST_CASE("resource planner exposes direct selected without canonical OVOV") {
 }
 
 TEST_CASE("resource planner distributes one localized cached OVOV tensor") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -261,7 +261,7 @@ TEST_CASE("resource planner distributes one localized cached OVOV tensor") {
 }
 
 TEST_CASE("resource planner falls back when localized cache cannot fit") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   constexpr std::size_t gib = 1024U * 1024U * 1024U;
   const LocalizedMp2ResourcePlan plan = plan_localized_mp2_resources(
       LocalizedMp2MachineResources{
@@ -288,7 +288,7 @@ TEST_CASE("resource planner falls back when localized cache cannot fit") {
 }
 
 TEST_CASE("resource planner rejects invalid topology") {
-  using namespace modernqc::mp2;
+  using namespace lmp2_1m2m::mp2;
   CHECK_THROWS_AS(
       plan_localized_mp2_resources(
           LocalizedMp2MachineResources{}, LocalizedMp2Workload{}),

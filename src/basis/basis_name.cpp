@@ -1,11 +1,11 @@
-#include "modernqc/basis/basis_name.hpp"
+#include "lmp2_1m2m/basis/basis_name.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <stdexcept>
 #include <string>
 
-namespace modernqc::basis {
+namespace lmp2_1m2m::basis {
 
 std::string canonical_basis_name(std::string_view name) {
   std::string normalized{name};
@@ -38,4 +38,4 @@ std::string canonical_basis_name(std::string_view name) {
       "and aug-cc-pVQZ/avqz");
 }
 
-}  // namespace modernqc::basis
+}  // namespace lmp2_1m2m::basis
