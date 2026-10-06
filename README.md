@@ -1,4 +1,4 @@
-# LMP2--1M2M
+# LMP2-1M2M
 
 LMP2--1M2M calculates localized Laplace-transform MP2 energies for neutral water
 clusters. It performs RHF, localizes the complete active occupied and virtual
