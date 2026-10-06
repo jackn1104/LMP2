@@ -1,10 +1,10 @@
 #pragma once
 
-#include "modernqc/localization/pipek_mezey.hpp"
+#include "lmp2_1m2m/localization/pipek_mezey.hpp"
 
 #include <vector>
 
-namespace modernqc::localization::detail {
+namespace lmp2_1m2m::localization::detail {
 
 struct PipekMezeyCiahResult {
   linalg::Matrix rotation;
@@ -25,4 +25,4 @@ struct PipekMezeyCiahResult {
     const linalg::Matrix& initial_rotation,
     const PipekMezeyOptions& options);
 
-}  // namespace modernqc::localization::detail
+}  // namespace lmp2_1m2m::localization::detail

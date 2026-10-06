@@ -1,7 +1,7 @@
 #include "pipek_mezey_ciah.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,11 +14,11 @@
 #include <utility>
 #include <vector>
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #include <omp.h>
 #endif
 
-namespace modernqc::localization::detail {
+namespace lmp2_1m2m::localization::detail {
 namespace {
 
 extern "C" {
@@ -149,7 +149,7 @@ void add_scaled_in_place(Vector& target, const Vector& source,
 
 [[nodiscard]] int atom_reduction_threads(std::size_t orbitals,
                                          std::size_t atoms) {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
   if(orbitals >= 32 && atoms >= 2) {
     const std::size_t limit = std::min(
         atoms, static_cast<std::size_t>(omp_get_max_threads()));
@@ -171,7 +171,7 @@ void add_scaled_in_place(Vector& target, const Vector& source,
 }
 
 [[nodiscard]] int row_block_threads(std::size_t rows) {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
   if(rows >= 32 && !omp_in_parallel()) {
     // Four output rows per worker still leave O(n^2) work in every DGEMM for
     // the complete virtual space, while avoiding hundreds of tiny calls.
@@ -188,7 +188,7 @@ void add_scaled_in_place(Vector& target, const Vector& source,
 
 [[nodiscard]] bool use_intra_atom_parallelism(std::size_t orbitals,
                                               std::size_t atoms) {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
   return orbitals >= 32 && atoms > 0 &&
          atoms < static_cast<std::size_t>(
                      std::max(2, omp_get_max_threads() / 2));
@@ -229,11 +229,11 @@ void add_scaled_in_place(Vector& target, const Vector& source,
   constexpr double alpha = 1.0;
   constexpr double beta = 0.0;
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(threads)
 #endif
   {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
     const int thread = omp_get_thread_num();
 #else
     const int thread = 0;
@@ -456,7 +456,7 @@ template <typename Operation>
   }
 
   const int threads = atom_reduction_threads(rotation.rows(), canonical.size());
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if(threads > 1)
 #endif
   for(std::ptrdiff_t atom = 0;
@@ -505,7 +505,7 @@ struct Derivatives {
       for(const linalg::Matrix& atom : populations) {
         const linalg::Matrix population_times_x =
             multiply_openmp_rows(atom, x);
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static)
 #endif
         for(std::ptrdiff_t position = 0;
@@ -524,7 +524,7 @@ struct Derivatives {
           hx, linalg::scaled(
                   multiply_openmp_rows(hessian_g_matrix, x), 2.0));
       const linalg::Matrix raw_hx = hx;
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel for schedule(static)
 #endif
       for(std::ptrdiff_t position = 0;
@@ -540,11 +540,11 @@ struct Derivatives {
     const int threads = atom_reduction_threads(n, populations.size());
     std::vector<linalg::Matrix> hx_by_thread =
         zero_matrices(threads, n, n);
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(threads) if(threads > 1)
 #endif
     {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
       const int thread = omp_get_thread_num();
 #else
       const int thread = 0;
@@ -600,11 +600,11 @@ struct Derivatives {
       zero_matrices(threads, n, n);
   std::vector<linalg::Matrix> h_by_thread =
       zero_matrices(threads, n, n);
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(threads) if(threads > 1)
 #endif
   {
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
     const int thread = omp_get_thread_num();
 #else
     const int thread = 0;
@@ -1159,4 +1159,4 @@ PipekMezeyCiahResult optimize_pipek_mezey_ciah(
   };
 }
 
-}  // namespace modernqc::localization::detail
+}  // namespace lmp2_1m2m::localization::detail

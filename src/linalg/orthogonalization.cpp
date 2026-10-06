@@ -1,6 +1,6 @@
-#include "modernqc/linalg/orthogonalization.hpp"
+#include "lmp2_1m2m/linalg/orthogonalization.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::linalg {
+namespace lmp2_1m2m::linalg {
 
 Orthogonalization build_orthogonalizer(
     const Matrix& overlap, OrthogonalizationMethod method,
@@ -73,4 +73,4 @@ Orthogonalization build_orthogonalizer(
   };
 }
 
-}  // namespace modernqc::linalg
+}  // namespace lmp2_1m2m::linalg

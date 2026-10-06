@@ -1,11 +1,11 @@
-#include "modernqc/mp2/resource_planner.hpp"
+#include "lmp2_1m2m/mp2/resource_planner.hpp"
 
 #include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 [[nodiscard]] std::size_t checked_multiply(std::size_t left,
@@ -497,4 +497,4 @@ LocalizedMp2ResourcePlan plan_localized_mp2_resources(
   };
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

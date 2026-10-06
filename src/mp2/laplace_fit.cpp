@@ -1,7 +1,7 @@
-#include "modernqc/mp2/laplace_fit.hpp"
+#include "lmp2_1m2m/mp2/laplace_fit.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,15 +17,15 @@
 #include <utility>
 #include <vector>
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 #include <mpi.h>
 #endif
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #include <omp.h>
 #endif
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 constexpr double log_minimum_normal =
@@ -52,7 +52,7 @@ void validate_options(const LaplaceFitOptions& options) {
      options.objective_tolerance <= 0.0) {
     throw std::invalid_argument("Laplace-fit options are invalid");
   }
-#ifndef MODERNQC_HAS_OPENMP
+#ifndef LMP2_1M2M_HAS_OPENMP
   if(options.threads != 1) {
     throw std::invalid_argument(
         "multiple histogram threads require OpenMP support");
@@ -173,7 +173,7 @@ void reduce_histogram_across_ranks(
   if(options.mpi_ranks == 1) {
     return;
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   int initialized = 0;
   int rank = 0;
   int ranks = 0;
@@ -207,7 +207,7 @@ void reduce_histogram_across_ranks(
 #endif
 }
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 void broadcast_bytes(void* data, std::size_t bytes) {
   auto* cursor = static_cast<unsigned char*>(data);
   std::size_t offset = 0;
@@ -1648,7 +1648,7 @@ DenominatorHistogram build_denominator_histogram(
       std::vector<std::uint64_t>(options.histogram_bins, 0));
   std::vector<int> thread_failures(options.threads, 0);
 
-#ifdef MODERNQC_HAS_OPENMP
+#ifdef LMP2_1M2M_HAS_OPENMP
 #pragma omp parallel num_threads(static_cast<int>(options.threads))
   {
     const std::size_t thread =
@@ -2012,7 +2012,7 @@ LaplaceFitResult build_and_fit_laplace_quadrature(
   if(options.mpi_ranks == 1) {
     return fit_laplace_quadrature(histogram, options);
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   return root_fit_and_broadcast(histogram, options);
 #else
   throw std::runtime_error(
@@ -2047,4 +2047,4 @@ double evaluate_laplace_reciprocal(
   return result;
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

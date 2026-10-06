@@ -1,7 +1,7 @@
-#include "modernqc/localization/orbital_localization.hpp"
+#include "lmp2_1m2m/localization/orbital_localization.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <array>
@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::localization {
+namespace lmp2_1m2m::localization {
 namespace {
 
 using Matrix = linalg::Matrix;
@@ -1600,4 +1600,4 @@ void save_localization_outputs(const LocalizationResult& result,
   }
 }
 
-}  // namespace modernqc::localization
+}  // namespace lmp2_1m2m::localization

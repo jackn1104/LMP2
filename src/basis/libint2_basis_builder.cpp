@@ -1,6 +1,6 @@
-#include "modernqc/basis/libint2_basis_builder.hpp"
+#include "lmp2_1m2m/basis/libint2_basis_builder.hpp"
 
-#include "modernqc/basis/basis_name.hpp"
+#include "lmp2_1m2m/basis/basis_name.hpp"
 
 #include <libint2/basis.h>
 
@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace modernqc::basis {
+namespace lmp2_1m2m::basis {
 namespace {
 
 [[nodiscard]] std::vector<libint2::Atom> to_libint_atoms(
@@ -110,4 +110,4 @@ BasisSet build_libint2_basis(const molecule::Molecule& molecule,
   return result;
 }
 
-}  // namespace modernqc::basis
+}  // namespace lmp2_1m2m::basis

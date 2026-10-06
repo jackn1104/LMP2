@@ -1,12 +1,12 @@
-#include "modernqc/integrals/integral_provider.hpp"
-#include "modernqc/linalg/matrix.hpp"
-#include "modernqc/molecule/molecule.hpp"
-#include "modernqc/mp2/canonical_mp2.hpp"
-#include "modernqc/mp2/laplace_fit.hpp"
-#include "modernqc/mp2/localized_tiled_laplace_mp2.hpp"
-#include "modernqc/mp2/nm_decomposition.hpp"
-#include "modernqc/mp2/tiled_laplace_mp2.hpp"
-#include "modernqc/scf/rhf.hpp"
+#include "lmp2_1m2m/integrals/integral_provider.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
+#include "lmp2_1m2m/molecule/molecule.hpp"
+#include "lmp2_1m2m/mp2/canonical_mp2.hpp"
+#include "lmp2_1m2m/mp2/laplace_fit.hpp"
+#include "lmp2_1m2m/mp2/localized_tiled_laplace_mp2.hpp"
+#include "lmp2_1m2m/mp2/nm_decomposition.hpp"
+#include "lmp2_1m2m/mp2/tiled_laplace_mp2.hpp"
+#include "lmp2_1m2m/scf/rhf.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -17,9 +17,9 @@
 
 namespace {
 
-[[nodiscard]] modernqc::molecule::Molecule h2_for_localized_lmp2() {
-  using modernqc::molecule::Atom;
-  return modernqc::molecule::Molecule{
+[[nodiscard]] lmp2_1m2m::molecule::Molecule h2_for_localized_lmp2_1m2m() {
+  using lmp2_1m2m::molecule::Atom;
+  return lmp2_1m2m::molecule::Molecule{
       std::vector<Atom>{
           Atom{.symbol = "H",
                .atomic_number = 1,
@@ -32,9 +32,9 @@ namespace {
       1};
 }
 
-[[nodiscard]] modernqc::molecule::Molecule h4_for_localized_lmp2() {
-  using modernqc::molecule::Atom;
-  return modernqc::molecule::Molecule{
+[[nodiscard]] lmp2_1m2m::molecule::Molecule h4_for_localized_lmp2_1m2m() {
+  using lmp2_1m2m::molecule::Atom;
+  return lmp2_1m2m::molecule::Molecule{
       std::vector<Atom>{
           Atom{.symbol = "H",
                .atomic_number = 1,
@@ -53,8 +53,8 @@ namespace {
       1};
 }
 
-[[nodiscard]] modernqc::linalg::Matrix planar_rotation(double angle) {
-  modernqc::linalg::Matrix result{2, 2};
+[[nodiscard]] lmp2_1m2m::linalg::Matrix planar_rotation(double angle) {
+  lmp2_1m2m::linalg::Matrix result{2, 2};
   result(0, 0) = std::cos(angle);
   result(1, 0) = std::sin(angle);
   result(0, 1) = -std::sin(angle);
@@ -62,10 +62,10 @@ namespace {
   return result;
 }
 
-[[nodiscard]] modernqc::linalg::Matrix paired_planar_rotation(
+[[nodiscard]] lmp2_1m2m::linalg::Matrix paired_planar_rotation(
     double first_angle, double second_angle) {
-  modernqc::linalg::Matrix result =
-      modernqc::linalg::Matrix::identity(4);
+  lmp2_1m2m::linalg::Matrix result =
+      lmp2_1m2m::linalg::Matrix::identity(4);
   const auto first = planar_rotation(first_angle);
   const auto second = planar_rotation(second_angle);
   for(std::size_t row = 0; row < 2; ++row) {
@@ -80,12 +80,12 @@ namespace {
 }  // namespace
 
 TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
-  const auto molecule = h2_for_localized_lmp2();
-  modernqc::integrals::Libint2IntegralProvider provider{
+  const auto molecule = h2_for_localized_lmp2_1m2m();
+  lmp2_1m2m::integrals::Libint2IntegralProvider provider{
       molecule, "avdz", true};
-  const auto rhf = modernqc::scf::run_rhf(
+  const auto rhf = lmp2_1m2m::scf::run_rhf(
       molecule, provider,
-      modernqc::scf::RhfOptions{
+      lmp2_1m2m::scf::RhfOptions{
           .maximum_iterations = 80,
           .energy_tolerance = 1.0e-11,
           .density_rms_tolerance = 1.0e-9,
@@ -102,9 +102,9 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
       ++orbital) {
     virtuals.push_back(orbital);
   }
-  const auto fit = modernqc::mp2::build_and_fit_laplace_quadrature(
+  const auto fit = lmp2_1m2m::mp2::build_and_fit_laplace_quadrature(
       rhf.orbital_energies, {0}, virtuals,
-      modernqc::mp2::LaplaceFitOptions{
+      lmp2_1m2m::mp2::LaplaceFitOptions{
           .histogram_bins = 128,
           .number_of_points = 8,
           .gap_block_size = 32,
@@ -114,10 +114,10 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
           .mpi_rank = 0,
           .mpi_ranks = 1,
       });
-  const auto canonical = modernqc::mp2::compute_tiled_laplace_mp2(
+  const auto canonical = lmp2_1m2m::mp2::compute_tiled_laplace_mp2(
       provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
       fit,
-      modernqc::mp2::TiledLaplaceMp2Options{
+      lmp2_1m2m::mp2::TiledLaplaceMp2Options{
           .occupied_tile_size = 1,
           .virtual_tile_size = 8,
           .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -126,28 +126,28 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
           .mpi_rank = 0,
           .mpi_ranks = 1,
       });
-  const modernqc::linalg::Matrix occupied_rotation =
-      modernqc::linalg::Matrix::identity(1);
-  const modernqc::linalg::Matrix virtual_rotation =
-      modernqc::linalg::Matrix::identity(virtuals.size());
-  const std::vector<modernqc::mp2::MonomerAssignment> occupied_assignments{
+  const lmp2_1m2m::linalg::Matrix occupied_rotation =
+      lmp2_1m2m::linalg::Matrix::identity(1);
+  const lmp2_1m2m::linalg::Matrix virtual_rotation =
+      lmp2_1m2m::linalg::Matrix::identity(virtuals.size());
+  const std::vector<lmp2_1m2m::mp2::MonomerAssignment> occupied_assignments{
       {.monomer_id = 0, .confidence = 1.0}};
-  std::vector<modernqc::mp2::MonomerAssignment> virtual_assignments(
+  std::vector<lmp2_1m2m::mp2::MonomerAssignment> virtual_assignments(
       virtuals.size(), {.monomer_id = 0, .confidence = 1.0});
   const auto localized =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   cached_canonical_ovov,
           });
   CHECK(std::abs(localized.correlation_energy_hartree -
@@ -158,7 +158,7 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(localized.decomposition.energy_hartree[3] == 0.0);
   CHECK(localized.decomposition.energy_hartree[4] == 0.0);
   CHECK(localized.omitted_excitation_terms == 0);
-  CHECK(localized.backend == modernqc::mp2::LocalizedLaplaceMp2Backend::
+  CHECK(localized.backend == lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                                  cached_canonical_ovov);
   CHECK(localized.direct_transform_count == 1);
   CHECK(localized.exchange_transform_count == 0);
@@ -175,11 +175,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(localized.computed_excitation_terms ==
         virtuals.size() * virtuals.size());
 
-  const auto exact_canonical = modernqc::mp2::compute_canonical_mp2(
+  const auto exact_canonical = lmp2_1m2m::mp2::compute_canonical_mp2(
       provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals);
-  const auto laguerre = modernqc::mp2::build_and_fit_laplace_quadrature(
+  const auto laguerre = lmp2_1m2m::mp2::build_and_fit_laplace_quadrature(
       rhf.orbital_energies, {0}, virtuals,
-      modernqc::mp2::LaplaceFitOptions{
+      lmp2_1m2m::mp2::LaplaceFitOptions{
           .histogram_bins = 128,
           .number_of_points = 50,
           .gap_block_size = 32,
@@ -188,44 +188,44 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
           .threads = 1,
           .mpi_rank = 0,
           .mpi_ranks = 1,
-          .scheme = modernqc::mp2::LaplaceQuadratureScheme::gauss_laguerre,
+          .scheme = lmp2_1m2m::mp2::LaplaceQuadratureScheme::gauss_laguerre,
       });
   const auto laguerre_localized =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, laguerre,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   cached_canonical_ovov,
           });
   CHECK(std::abs(laguerre_localized.correlation_energy_hartree -
                  exact_canonical.correlation_energy) <= 1.0e-7);
 
   const auto automatic_small_memory =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 64U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::automatic,
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::automatic,
           });
   CHECK(automatic_small_memory.backend ==
-        modernqc::mp2::LocalizedLaplaceMp2Backend::direct_tiled);
+        lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::direct_tiled);
   CHECK(automatic_small_memory.canonical_ovov_bytes == 0);
   CHECK(std::abs(automatic_small_memory.correlation_energy_hartree -
                  localized.correlation_energy_hartree) <= 3.0e-12);
@@ -236,19 +236,19 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
         1 + static_cast<int>(orbital % 2);
   }
   const auto full_partition =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   direct_tiled,
           });
   CHECK(std::abs(full_partition.correlation_energy_hartree -
@@ -256,11 +256,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(full_partition.decomposition.energy_hartree[3] != 0.0);
 
   const auto one_two =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -268,8 +268,8 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   direct_tiled,
           });
   CHECK(one_two.decomposition.energy_hartree[3] == 0.0);
@@ -282,11 +282,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
         full_partition.computed_point_tasks);
 
   const auto localized_direct_selected =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -294,12 +294,12 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   localized_direct_selected,
           });
   CHECK(localized_direct_selected.backend ==
-        modernqc::mp2::LocalizedLaplaceMp2Backend::
+        lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
             localized_direct_selected);
   CHECK(std::abs(localized_direct_selected.correlation_energy_hartree -
                  one_two.correlation_energy_hartree) <= 3.0e-12);
@@ -324,11 +324,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(localized_direct_selected.distributed_communication_seconds == 0.0);
 
   const auto batched_localized_direct_selected =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .quadrature_batch_size = fit.nodes.size(),
@@ -338,8 +338,8 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   localized_direct_selected,
           });
   CHECK(std::abs(
@@ -366,29 +366,29 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
             fit.nodes.size());
 
   CHECK_THROWS_AS(
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   localized_direct_selected,
           }),
       std::invalid_argument);
 
   const auto automatic_one_two =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 8,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -396,9 +396,9 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
               .backend =
-                  modernqc::mp2::LocalizedLaplaceMp2Backend::automatic,
+                  lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::automatic,
           });
   CHECK(std::abs(automatic_one_two.correlation_energy_hartree -
                  one_two.correlation_energy_hartree) <= 3.0e-12);
@@ -411,7 +411,7 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(automatic_one_two.omitted_excitation_terms ==
         one_two.omitted_excitation_terms);
   CHECK(automatic_one_two.backend ==
-        modernqc::mp2::LocalizedLaplaceMp2Backend::
+        lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
             localized_cached_ovov);
   CHECK(automatic_one_two.canonical_ovov_bytes == 0);
   CHECK(automatic_one_two.localized_ovov_bytes > 0);
@@ -426,7 +426,7 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(automatic_one_two.localized_ovov_bytes > 0);
 
   auto fully_screened_options =
-      modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+      lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
           .occupied_tile_size = 1,
           .virtual_tile_size = 8,
           .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -435,11 +435,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
           .mpi_ranks = 1,
           .localized_energy_schwarz_threshold_hartree = 1.0e100,
           .execution_mode =
-              modernqc::mp2::NmExecutionMode::one_two_monomer,
-          .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::automatic,
+              lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+          .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::automatic,
       };
   const auto fully_screened =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit, fully_screened_options);
@@ -457,7 +457,7 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
   CHECK(fully_screened.computed_point_tasks == 0);
 
   auto point_screened_options =
-      modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+      lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
           .occupied_tile_size = 1,
           .virtual_tile_size = 8,
           .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -466,11 +466,11 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
           .mpi_ranks = 1,
           .localized_point_energy_threshold_hartree = 1.0e-8,
           .execution_mode =
-              modernqc::mp2::NmExecutionMode::one_two_monomer,
-          .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::automatic,
+              lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+          .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::automatic,
       };
   const auto partially_point_screened =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit, point_screened_options);
@@ -487,14 +487,14 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
 
   fully_screened_options.localized_energy_schwarz_threshold_hartree = -1.0;
   CHECK_THROWS_AS(
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit, fully_screened_options),
       std::invalid_argument);
   point_screened_options.localized_point_energy_threshold_hartree = -1.0;
   CHECK_THROWS_AS(
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, {0}, virtuals,
           occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit, point_screened_options),
@@ -502,12 +502,12 @@ TEST_CASE("localized tiled Laplace MP2 preserves the full-space energy") {
 }
 
 TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
-  const auto molecule = h4_for_localized_lmp2();
-  modernqc::integrals::Libint2IntegralProvider provider{
+  const auto molecule = h4_for_localized_lmp2_1m2m();
+  lmp2_1m2m::integrals::Libint2IntegralProvider provider{
       molecule, "avdz", true};
-  const auto rhf = modernqc::scf::run_rhf(
+  const auto rhf = lmp2_1m2m::scf::run_rhf(
       molecule, provider,
-      modernqc::scf::RhfOptions{
+      lmp2_1m2m::scf::RhfOptions{
           .maximum_iterations = 80,
           .energy_tolerance = 1.0e-11,
           .density_rms_tolerance = 1.0e-9,
@@ -527,9 +527,9 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
     virtuals.push_back(orbital);
   }
   REQUIRE(virtuals.size() == 4);
-  const auto fit = modernqc::mp2::build_and_fit_laplace_quadrature(
+  const auto fit = lmp2_1m2m::mp2::build_and_fit_laplace_quadrature(
       rhf.orbital_energies, occupied, virtuals,
-      modernqc::mp2::LaplaceFitOptions{
+      lmp2_1m2m::mp2::LaplaceFitOptions{
           .histogram_bins = 96,
           .number_of_points = 6,
           .gap_block_size = 32,
@@ -539,10 +539,10 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
           .mpi_rank = 0,
           .mpi_ranks = 1,
       });
-  const auto canonical = modernqc::mp2::compute_tiled_laplace_mp2(
+  const auto canonical = lmp2_1m2m::mp2::compute_tiled_laplace_mp2(
       provider, rhf.coefficients, rhf.orbital_energies, occupied, virtuals,
       fit,
-      modernqc::mp2::TiledLaplaceMp2Options{
+      lmp2_1m2m::mp2::TiledLaplaceMp2Options{
           .occupied_tile_size = 1,
           .virtual_tile_size = 1,
           .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -551,55 +551,55 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
           .mpi_rank = 0,
           .mpi_ranks = 1,
       });
-  const std::vector<modernqc::mp2::MonomerAssignment> occupied_assignments{
+  const std::vector<lmp2_1m2m::mp2::MonomerAssignment> occupied_assignments{
       {.monomer_id = 0, .confidence = 1.0},
       {.monomer_id = 1, .confidence = 1.0}};
-  const std::vector<modernqc::mp2::MonomerAssignment> virtual_assignments{
+  const std::vector<lmp2_1m2m::mp2::MonomerAssignment> virtual_assignments{
       {.monomer_id = 0, .confidence = 1.0},
       {.monomer_id = 1, .confidence = 1.0},
       {.monomer_id = 2, .confidence = 1.0},
       {.monomer_id = 3, .confidence = 1.0}};
-  const modernqc::linalg::Matrix occupied_rotation = planar_rotation(0.31);
-  const modernqc::linalg::Matrix virtual_rotation =
+  const lmp2_1m2m::linalg::Matrix occupied_rotation = planar_rotation(0.31);
+  const lmp2_1m2m::linalg::Matrix virtual_rotation =
       paired_planar_rotation(-0.47, 0.22);
   const auto localized =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, occupied,
           virtuals, occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 1,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   direct_tiled,
           });
   const auto cached =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, occupied,
           virtuals, occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 2,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   cached_canonical_ovov,
           });
   const auto selected =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, occupied,
           virtuals, occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -607,16 +607,16 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   distributed_selected_ovov,
           });
   const auto localized_cached =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, occupied,
           virtuals, occupied_rotation, virtual_rotation, occupied_assignments,
           virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
@@ -624,24 +624,24 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
               .mpi_rank = 0,
               .mpi_ranks = 1,
               .execution_mode =
-                  modernqc::mp2::NmExecutionMode::one_two_monomer,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+                  lmp2_1m2m::mp2::NmExecutionMode::one_two_monomer,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   localized_cached_ovov,
           });
   const auto localized_cached_full =
-      modernqc::mp2::compute_localized_tiled_laplace_mp2(
+      lmp2_1m2m::mp2::compute_localized_tiled_laplace_mp2(
           provider, rhf.coefficients, rhf.orbital_energies, occupied,
           virtuals, occupied_rotation, virtual_rotation,
           occupied_assignments, virtual_assignments, fit,
-          modernqc::mp2::LocalizedTiledLaplaceMp2Options{
+          lmp2_1m2m::mp2::LocalizedTiledLaplaceMp2Options{
               .occupied_tile_size = 1,
               .virtual_tile_size = 1,
               .maximum_additional_memory_bytes = 32U * 1024U * 1024U,
               .threads = 2,
               .mpi_rank = 0,
               .mpi_ranks = 1,
-              .execution_mode = modernqc::mp2::NmExecutionMode::full,
-              .backend = modernqc::mp2::LocalizedLaplaceMp2Backend::
+              .execution_mode = lmp2_1m2m::mp2::NmExecutionMode::full,
+              .backend = lmp2_1m2m::mp2::LocalizedLaplaceMp2Backend::
                   localized_cached_ovov,
           });
   CHECK(std::abs(localized.correlation_energy_hartree -
@@ -666,7 +666,7 @@ TEST_CASE("localized block-pair symmetry preserves ordered MP2 terms") {
   CHECK(std::abs(localized_cached_full.correlation_energy_hartree -
                  cached.correlation_energy_hartree) <= 3.0e-12);
   for(std::size_t body = 1;
-      body <= modernqc::mp2::maximum_mp2_body_order; ++body) {
+      body <= lmp2_1m2m::mp2::maximum_mp2_body_order; ++body) {
     CHECK(std::abs(
               localized_cached_full.decomposition.energy_hartree[body] -
               cached.decomposition.energy_hartree[body]) <= 3.0e-12);

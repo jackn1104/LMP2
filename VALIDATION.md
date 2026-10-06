@@ -5,7 +5,7 @@
 Date: 2026-08-10
 
 An arm64 macOS release build with AppleClang 16 completed the included
-W1/aVDZ full calculation through the public `LMP2` command. The seven-point
+W1/aVDZ full calculation through the public `LMP2-1M2M` command. The seven-point
 minimax result was:
 
 ```text
@@ -39,10 +39,10 @@ localized OVOV tensor, and zero low-confidence orbitals.
 The standalone Debug test configuration passed all four CTest gates:
 
 ```text
-lmp2_resource_tests
-lmp2_block_symmetry_tests
-lmp2_fullspace_energy_tests
-lmp2_public_cli
+lmp2_1m2m_resource_tests
+lmp2_1m2m_block_symmetry_tests
+lmp2_1m2m_fullspace_energy_tests
+lmp2_1m2m_public_cli
 ```
 
 The same four gates passed with undefined-behavior sanitization. The

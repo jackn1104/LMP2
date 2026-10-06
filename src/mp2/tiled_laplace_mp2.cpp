@@ -1,9 +1,9 @@
-#include "modernqc/mp2/tiled_laplace_mp2.hpp"
+#include "lmp2_1m2m/mp2/tiled_laplace_mp2.hpp"
 
-#include "modernqc/integrals/integral_provider.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/integrals/integral_provider.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 #include <mpi.h>
 #endif
 
@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::mp2 {
+namespace lmp2_1m2m::mp2 {
 namespace {
 
 constexpr std::uint64_t fnv_offset = UINT64_C(1469598103934665603);
@@ -148,7 +148,7 @@ void validate_topology(const TiledLaplaceMp2Options& options) {
     throw std::invalid_argument(
         "tiled Laplace MP2 MPI topology is invalid");
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     int initialized = 0;
     if(MPI_Initialized(&initialized) != MPI_SUCCESS ||
@@ -178,7 +178,7 @@ void validate_topology(const TiledLaplaceMp2Options& options) {
 #endif
 }
 
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
 void check_mpi(int status, const char* operation) {
   if(status != MPI_SUCCESS) {
     throw std::runtime_error(std::string{"MPI failure while "} + operation);
@@ -470,7 +470,7 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
                               orbital_energies,
                               active_occupied_indices, virtual_indices,
                               fit, options);
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     require_identical_hash(fingerprint, "calculation fingerprint");
   }
@@ -500,7 +500,7 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
       }
     }
   }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     std::uint64_t progress_hash = fnv_offset;
     hash_value(progress_hash, progress.fingerprint);
@@ -724,7 +724,7 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
         local_error = std::current_exception();
       }
     }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       propagate_failure(local_error != nullptr,
                         "propagating a tiled Laplace MP2 transform failure");
@@ -754,7 +754,7 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
         observer_error = std::current_exception();
       }
     }
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
     if(options.mpi_ranks > 1) {
       propagate_failure(observer_error != nullptr,
                         "propagating a tiled Laplace MP2 checkpoint failure");
@@ -782,7 +782,7 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
   }
   std::pair<std::uint64_t, std::uint64_t> work_range{
       local_tiles, local_tiles};
-#ifdef MODERNQC_HAS_MPI
+#ifdef LMP2_1M2M_HAS_MPI
   if(options.mpi_ranks > 1) {
     work_range = reduce_work_range(local_tiles);
     reduce_transform_diagnostics(
@@ -820,4 +820,4 @@ TiledLaplaceMp2Result compute_tiled_laplace_mp2(
   };
 }
 
-}  // namespace modernqc::mp2
+}  // namespace lmp2_1m2m::mp2

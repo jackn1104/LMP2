@@ -1,8 +1,8 @@
-#include "modernqc/scf/rhf_guess.hpp"
+#include "lmp2_1m2m/scf/rhf_guess.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
-#include "modernqc/linalg/orthogonalization.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/orthogonalization.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace modernqc::scf {
+namespace lmp2_1m2m::scf {
 namespace {
 
 [[nodiscard]] linalg::Matrix first_columns(
@@ -150,4 +150,4 @@ ProjectedRhfGuess project_occupied_rhf_guess(
   };
 }
 
-}  // namespace modernqc::scf
+}  // namespace lmp2_1m2m::scf

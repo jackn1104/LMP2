@@ -1,4 +1,4 @@
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace modernqc::linalg {
+namespace lmp2_1m2m::linalg {
 namespace {
 
 extern "C" {
@@ -226,4 +226,4 @@ void require_finite(const Matrix& matrix, const char* name) {
   }
 }
 
-}  // namespace modernqc::linalg
+}  // namespace lmp2_1m2m::linalg

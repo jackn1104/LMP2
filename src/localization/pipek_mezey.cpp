@@ -1,9 +1,9 @@
-#include "modernqc/localization/pipek_mezey.hpp"
+#include "lmp2_1m2m/localization/pipek_mezey.hpp"
 
 #include "pipek_mezey_ciah.hpp"
 
-#include "modernqc/linalg/eigensolver.hpp"
-#include "modernqc/linalg/matrix.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
 
 #include <algorithm>
 #include <array>
@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::localization {
+namespace lmp2_1m2m::localization {
 namespace {
 
 template <typename Operation>
@@ -1437,4 +1437,4 @@ PipekMezeyDiagnosticPaths write_pipek_mezey_diagnostics(
   return paths;
 }
 
-}  // namespace modernqc::localization
+}  // namespace lmp2_1m2m::localization

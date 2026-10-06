@@ -2,7 +2,7 @@
 
 ## Energy convention
 
-For real, closed-shell spatial orbitals, LMP2 uses
+For real, closed-shell spatial orbitals, LMP2-1M2M uses
 
 \[
 E_{\mathrm{MP2}}^{\mathrm{corr}}

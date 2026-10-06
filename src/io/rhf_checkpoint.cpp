@@ -1,10 +1,10 @@
-#include "modernqc/io/rhf_checkpoint.hpp"
+#include "lmp2_1m2m/io/rhf_checkpoint.hpp"
 
-#include "modernqc/core/build_info.hpp"
-#include "modernqc/linalg/matrix.hpp"
-#include "modernqc/mp2/laplace_fit.hpp"
-#include "modernqc/mp2/laplace_mp2.hpp"
-#include "modernqc/mp2/tiled_laplace_mp2.hpp"
+#include "lmp2_1m2m/core/build_info.hpp"
+#include "lmp2_1m2m/linalg/matrix.hpp"
+#include "lmp2_1m2m/mp2/laplace_fit.hpp"
+#include "lmp2_1m2m/mp2/laplace_mp2.hpp"
+#include "lmp2_1m2m/mp2/tiled_laplace_mp2.hpp"
 
 #include <hdf5.h>
 
@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-namespace modernqc::io {
+namespace lmp2_1m2m::io {
 namespace {
 
 class Hdf5Handle {
@@ -2144,4 +2144,4 @@ void write_tiled_laplace_mp2_restart(
   }
 }
 
-}  // namespace modernqc::io
+}  // namespace lmp2_1m2m::io

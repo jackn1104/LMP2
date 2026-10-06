@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Public-interface and known-case checks for the LMP2 launcher."""
+"""Public-interface and known-case checks for the LMP2-1M2M launcher."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def main() -> int:
     engine = Path(sys.argv[2]).resolve()
     source = Path(sys.argv[3]).resolve()
 
-    with tempfile.TemporaryDirectory(prefix="lmp2-cli-test-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="lmp2_1m2m-cli-test-") as temporary:
         root = Path(temporary)
         output = root / "known-case"
         known_case = run(
@@ -47,7 +47,7 @@ def main() -> int:
             "known-case calculation failed:\n" + known_case.stdout + known_case.stderr,
         )
         require(
-            "LMP2 completed\n  Basis:        aug-cc-pVDZ" in known_case.stdout,
+            "LMP2-1M2M completed\n  Basis:        aug-cc-pVDZ" in known_case.stdout,
             "completed summary does not start with the full basis name",
         )
         with (output / "energy.csv").open(newline="", encoding="utf-8") as handle:
@@ -59,9 +59,9 @@ def main() -> int:
             "known-case RHF energy changed",
         )
         require(
-            abs(float(row["lmp2_correlation_hartree"]) - (-0.220148353960764))
+            abs(float(row["lmp2_1m2m_correlation_hartree"]) - (-0.220148353960764))
             < 5.0e-10,
-            "known-case LMP2 correlation energy changed",
+            "known-case LMP2-1M2M correlation energy changed",
         )
         require(row["energy_backend"] == "localized_cached_ovov", "wrong backend")
         require(int(row["canonical_ovov_bytes"]) == 0, "canonical OVOV was stored")
@@ -132,7 +132,7 @@ def main() -> int:
         )
         require(overwrite.returncode != 0, "nonempty output directory was accepted")
 
-    print("LMP2 public CLI checks passed")
+    print("LMP2-1M2M public CLI checks passed")
     return 0
 
 

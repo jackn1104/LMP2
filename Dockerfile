@@ -7,10 +7,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/LMP2
+WORKDIR /opt/LMP2-1M2M
 COPY . .
 RUN cmake --preset release && cmake --build --preset release
 
-ENTRYPOINT ["/opt/LMP2/LMP2"]
+ENTRYPOINT ["/opt/LMP2-1M2M/LMP2-1M2M"]
 CMD ["--help"]
 

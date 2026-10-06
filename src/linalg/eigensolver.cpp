@@ -1,4 +1,4 @@
-#include "modernqc/linalg/eigensolver.hpp"
+#include "lmp2_1m2m/linalg/eigensolver.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace modernqc::linalg {
+namespace lmp2_1m2m::linalg {
 namespace {
 
 extern "C" {
@@ -267,4 +267,4 @@ LeastSquaresResult solve_least_squares_svd(
   };
 }
 
-}  // namespace modernqc::linalg
+}  // namespace lmp2_1m2m::linalg
