@@ -1,6 +1,6 @@
 # LMP2-1M2M
 
-LMP2--1M2M calculates localized Laplace-transform MP2 energies for neutral water
+LMP2-1M2M calculates localized Laplace-transform MP2 energies for neutral water
 clusters. It performs RHF, localizes the complete active occupied and virtual
 spaces with Pipek--Mezey localization, assigns orbitals to water monomers with
 symmetric-Lowdin populations, builds one distributed four-index OVOV tensor
