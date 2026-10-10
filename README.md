@@ -259,8 +259,7 @@ full-space localized-tensor equivalence test.
 
 See [docs/METHOD.md](docs/METHOD.md) for equations, index conventions,
 parallel ownership, memory behavior, and validation requirements.
-See [VALIDATION.md](VALIDATION.md) for completed checks and untested limits of
-this package snapshot.
+
 
 This is research software. Verify quadrature, screening, SCF convergence,
 orbital assignment, and energy sums before using results in scientific work.
