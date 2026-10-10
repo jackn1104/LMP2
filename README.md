@@ -5,17 +5,17 @@ Paper: [DOI: 10.1021/acs.jctc.6c01287](https://doi.org/10.1021/acs.jctc.6c01287)
 LMP2-1M2M calculates localized Laplace-transform MP2 energies for neutral water
 clusters. It performs RHF, localizes the complete active occupied and virtual
 spaces with Pipek--Mezey localization, assigns orbitals to water monomers with
-symmetric-Lowdin populations, builds one distributed four-index OVOV tensor
+symmetric Lowdin populations, builds one distributed four-index OVOV tensor
 directly in the localized basis, and reports the 1M, 2M, 3M, and 4M
 correlation contributions.
 
-The public command is intentionally small:
+The command is:
 
 ```bash
 ./LMP2-1M2M examples/water_tetramer.xyz
 ```
 
-The included geometry gives the following seven-point minimax result with the
+The included geometry gives the following seven point minimax result with the
 default settings (wall time is machine-dependent):
 
 ```text
