@@ -168,12 +168,7 @@ function(lmp2_1m2m_configure_dependencies)
     add_library(LMP2_1M2M::HDF5 ALIAS LMP2_1M2M_HDF5)
   endif()
 
-  if(LMP2_1M2M_ENABLE_PYTHON)
-    find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
-    find_package(pybind11 CONFIG REQUIRED)
-  else()
-    find_package(Python3 QUIET COMPONENTS Interpreter)
-  endif()
+  find_package(Python3 QUIET COMPONENTS Interpreter)
   set(Python3_Interpreter_FOUND "${Python3_Interpreter_FOUND}" PARENT_SCOPE)
   set(Python3_EXECUTABLE "${Python3_EXECUTABLE}" PARENT_SCOPE)
 

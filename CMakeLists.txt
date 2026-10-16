@@ -22,7 +22,6 @@ option(LMP2_1M2M_ENABLE_MPI "Enable MPI support" ON)
 option(LMP2_1M2M_ENABLE_OPENMP "Enable OpenMP support" ON)
 option(LMP2_1M2M_ENABLE_LIBINT2 "Require the Libint2 integral backend" ON)
 option(LMP2_1M2M_ENABLE_HDF5 "Enable HDF5 restart files" ON)
-option(LMP2_1M2M_ENABLE_PYTHON "Build optional Python bindings" OFF)
 option(
   LMP2_1M2M_USE_CRAY_WRAPPER_LIBSCI
   "Use BLAS/LAPACK supplied by the Cray compiler wrapper"

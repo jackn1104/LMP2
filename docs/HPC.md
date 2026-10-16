@@ -48,7 +48,7 @@ embedded in the scientific source.
 For `n_o` active occupied and `n_v` virtual orbitals, the logical cached
 localized tensor contains `(n_o n_v)^2` doubles. MPI ranks own disjoint
 right-pair slices, but the AO-to-MO build and full-mode scaled tensor require
-additional rank-local workspaces. The terminal prints the smart planner's
+additional rank-local workspaces. The terminal prints the memory planner's
 usable memory, transform peak, and total peak before the expensive build.
 
 Do not set a memory value larger than a node's physical memory divided by the
